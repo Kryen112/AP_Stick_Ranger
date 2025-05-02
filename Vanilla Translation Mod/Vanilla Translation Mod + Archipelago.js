@@ -1306,28 +1306,6 @@ function loadGame(save_string_var,team_slot){ // original name: re()
 
     for (var i=0; i<3; i++)
         loadvar_d++;
-
-    for (var i=0; i<Stage_Count; i++)
-        Stage_Status[i] = 0;
-
-    for (var i=0; loadvar_d < save_string_var.length-3; loadvar_d++){
-        if (load_arr[loadvar_d]<16){
-            Stage_Status[i++] = load_arr[loadvar_d];
-        } else {
-            for (var j=0; j<load_arr[loadvar_d]-16; j++)
-                Stage_Status[i++] = load_arr[loadvar_d-1];
-        }
-    }
-
-    for (var i=0; i<Stage_Count; i++){
-        if ((Stage_Status[i]&Beaten) != 0){
-            Stage_Status[i] |= Unlocked;
-            if (Dot_Locations[i][3]>0)
-                Stage_Status[Dot_Locations[i][3]] |= Unlocked;
-            if (Dot_Locations[i][4]>0)
-                Stage_Status[Dot_Locations[i][4]] |= Unlocked;
-        }
-    }
     return 0;
 }
 
@@ -2608,10 +2586,6 @@ function PvEscreens(){ // original name: vf()
                 Text_Fade = Current_Screen = Sign_Touched_Mode = 0;
                 antiCheatCheck();
                 Stage_Status[Current_Stage] |= Beaten;
-                // if (Dot_Locations[Current_Stage][3]>0)
-                //     Stage_Status[Dot_Locations[Current_Stage][3]] |= Unlocked;
-                // if (Dot_Locations[Current_Stage][4]>0)
-                //     Stage_Status[Dot_Locations[Current_Stage][4]] |= Unlocked;
                 antiCheatSet();
                 Sequence_Step = 6;
                 if (Dot_Locations[Current_Stage][3] == -1)
