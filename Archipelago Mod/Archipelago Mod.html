@@ -1,0 +1,412 @@
+﻿<!DOCTYPE html>
+<html>
+    <head>
+        <title>Archipelago - Stick Ranger</title>
+        <style>
+            #cv:-webkit-full-screen {
+                image-rendering: pixelated;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: crisp-edges;
+                -ms-interpolation-mode: nearest-neighbor;
+                background-color: black;
+                object-fit: contain;
+                position: fixed;
+                width: 100%;
+                height: 100%;
+            }
+
+            body {
+                background-color: #0f0f0f;
+                overflow: hidden;
+                display: flex;
+            }
+
+            html,
+            body {
+                height: 100%;
+                margin: 0;
+            }
+
+            .left-panel {
+                float: left;
+            }
+
+            .right-panel {
+                float: right;
+                width: 512px;
+                background-color: rgb(51, 51, 51);
+                color: white;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                border-radius: 10px;
+                margin: 10px;
+            }
+
+            #saveCode {
+                width: 512px;
+            }
+
+            #APConnection {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #chat {
+                flex: 1;
+                width: 500px;
+                border: 2px solid rgb(76, 76, 76);
+                border-radius: 10px;
+                overflow-y: auto;
+                padding: 4px;
+                font-family: monospace;
+                font-size: 0.9em;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="left-panel">
+            <div id="disable_electron_warnings">
+                <script type="text/javascript">
+                    process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
+                </script>
+            </div>
+            <div id="game_canvas">
+                <canvas id="cv"></canvas>
+                <script src="Archipelago Mod.js"></script>
+                <script type="text/javascript">
+                    Init("1", 1, 0);
+                </script>
+            </div>
+            <div id="saveCode">
+                <script type="text/javascript">
+                    function saveCode() {
+                        var save_html = "";
+                        save_html += '<table class="ctbl"><tr><td><textarea id="inputBox" rows="1" cols="48" onclick="this.select();"><\/textarea><\/td>';
+                        save_html += '<td><input type="submit" value="Get" onclick="getCode()" onmousedown="document.getElementById(\'inputBox\').value=\'\';">';
+                        save_html += '<input type="submit" value="Set" onclick="load()";><\/td><\/tr><br>';
+
+                        document.getElementById("saveCode").innerHTML = save_html;
+                    }
+                    saveCode();
+                </script>
+                <script type="text/javascript">
+                    function getCode() {
+                        var save_string = GameSave("0");
+
+                        if (save_string != "") document.getElementById("inputBox").value = save_string;
+                    }
+
+                    function load() {
+                        document.getElementById("inputBox").value = document.getElementById("inputBox").value.replace(/\x0D\x0A|\x0D|\x0A/g, "");
+                        var save_string = document.getElementById("inputBox").value;
+
+                        if (save_string != "") GameLoad(save_string);
+                    }
+                </script>
+            </div>
+            <div id="fullScreenButton">
+                <input type="submit" value="Full Screen" onclick="fullScreen();" />
+            </div>
+        </div>
+        <div class="right-panel">
+            <div id="APConnection">
+                <p>Archipelago connection</p>
+                <table>
+                    <tr>
+                        <td>Host:</td>
+                        <td><input type="text" id="host" placeholder="archipelago.gg" value="archipelago.gg" /></td>
+                    </tr>
+                    <tr>
+                        <td>Port:</td>
+                        <td><input type="text" id="port" placeholder="35556" /></td>
+                    </tr>
+                    <tr>
+                        <td>Slot name:</td>
+                        <td><input type="text" id="slotName" placeholder="Slot name" /></td>
+                    </tr>
+                    <tr>
+                        <td>Password:</td>
+                        <td><input type="password" id="password" /></td>
+                    </tr>
+                </table>
+                <button id="connect">Connect</button>
+            </div>
+            <div id="chat"></div>
+
+            <script type="module">
+                const { Client, ITEMS_HANDLING_FLAGS, SERVER_PACKET_TYPE, CREATE_AS_HINT_MODE, CLIENT_STATUS, CONNECTION_STATUS, CLIENT_PACKET_TYPE, SetOperationsBuilder } = await import("https://unpkg.com/archipelago.js@1.0.0/dist/archipelago.js");
+                let receivedItems = [];
+                let pendingItems = [];
+                const stageIdToBeat = 88; // Hell Castle ID
+                const host = document.getElementById("host");
+                const port = document.getElementById("port");
+                const slotName = document.getElementById("slotName");
+                const password = document.getElementById("password");
+                const connectButton = document.getElementById("connect");
+                const apDiv = document.getElementById("APConnection");
+                const chatDiv = document.getElementById("chat");
+
+                connectButton.addEventListener("click", () => connectToAP());
+
+                function connectToAP() {
+                    window.client = new Client();
+
+                    const connectionInfo = {
+                        hostname: host.value,
+                        port: parseInt(port.value),
+                        game: "Stick Ranger",
+                        name: slotName.value,
+                        password: password.value,
+                        items_handling: ITEMS_HANDLING_FLAGS.REMOTE_ALL,
+                    };
+
+                    window.client.addListener(SERVER_PACKET_TYPE.CONNECTED, (packet) => {
+                        if (localStorage.getItem("host") === host.value && localStorage.getItem("port") === port.value && localStorage.getItem("slotName") === slotName.value && localStorage.getItem("password") === password.value) {
+                            receivedItems = JSON.parse(localStorage.getItem("receivedItems"));
+                            GameLoad(localStorage.getItem("save").replace(/\x0D\x0A|\x0D|\x0A/g, ""));
+                            receivedItems.forEach((id) => receiveItem(id, false));
+                            loadStagesFromLocal();
+                        } else {
+                            clearLocalStorage();
+                            save();
+                        }
+                    });
+
+                    window.client.addListener(SERVER_PACKET_TYPE.ROOM_UPDATE, (packet) => {
+                        console.log("Room update: ", packet);
+                    });
+
+                    window.client.addListener(SERVER_PACKET_TYPE.RECEIVED_ITEMS, (packet) => {
+                        console.log("Received Items: ", packet);
+
+                        if (packet.items.length > 1 || (packet.items.length === 1 && packet.items[0].item === receivedItems[0])) {
+                            var serverItems = [];
+
+                            packet.items.forEach((item) => {
+                                receiveItem(item.item, false);
+                                serverItems.push(item.item);
+                            });
+
+                            let difference = serverItems.filter((item) => !receivedItems.includes(item));
+                            console.log("serverItems");
+                            console.log(serverItems);
+
+                            console.log("receivedItems");
+                            console.log(receivedItems);
+
+                            console.log("difference");
+                            console.log(difference);
+
+                            difference.forEach((id) => {
+                                receiveItem(id, true);
+                            });
+                        } else {
+                            receiveItem(packet.items[0].item, true);
+                        }
+                        localStorage.setItem("stages", JSON.stringify(Stage_Status));
+                    });
+
+                    window.client.addListener(SERVER_PACKET_TYPE.LOCATION_INFO, (packet) => {
+                        console.log("Hint: ", packet);
+                    });
+
+                    window.client.addListener(SERVER_PACKET_TYPE.PRINT_JSON, (packet) => {
+                        const msg = packetToText(packet.data);
+                        if (msg === "") {
+                            return;
+                        }
+                        console.log(packet);
+                        addToChat(msg);
+                    });
+
+                    window.client
+                        .connect(connectionInfo)
+                        .then(() => {
+                            connectButton.disabled = true;
+                            host.disabled = true;
+                            port.disabled = true;
+                            slotName.disabled = true;
+                            password.disabled = true;
+                            apDiv.style.display = "none";
+                        })
+                        .catch((error) => {
+                            console.error("Failed to connect:", error[0].error.target.url);
+                            addToChat("Failed to connect to Archipelago.");
+                            connectButton.disabled = true;
+                            host.disabled = true;
+                            port.disabled = true;
+                            slotName.disabled = true;
+                            password.disabled = true;
+                        });
+
+                    window.addEventListener("beforeunload", () => {
+                        localStorage.setItem("save", GameSave("0"));
+                        localStorage.setItem("stages", JSON.stringify(Stage_Status));
+                        window.client.disconnect();
+                    });
+                }
+
+                function addToChat(text) {
+                    const msg = document.createElement("div");
+                    msg.style.borderBottom = "2px solid rgb(44, 44, 44)";
+                    msg.textContent = text;
+                    chatDiv.appendChild(msg);
+                    chatDiv.scrollTop = chatDiv.scrollHeight;
+                }
+
+                function packetToText(packet) {
+                    if (packet === undefined) {
+                        return "";
+                    }
+                    var msg = "";
+                    packet.forEach((element) => {
+                        msg += typeToText(element) + " ";
+                    });
+                    return msg;
+                }
+
+                function typeToText(element) {
+                    var id = -1;
+                    id = Number(element.text);
+                    var playerId = window.client.data.slotData.player_id;
+
+                    if (element.player !== undefined) {
+                        playerId = Number(element.player);
+                    }
+                    if (element.type === "player_id" && !isNaN(id)) {
+                        return window.client.players.name(Number(id));
+                    } else if (element.type === "item_id" && !isNaN(id)) {
+                        return window.client.items.name(window.client.players.game(Number(playerId)), Number(id));
+                    } else if (element.type === "location_id" && !isNaN(id)) {
+                        return window.client.locations.name(window.client.players.game(Number(playerId)), Number(id));
+                    } else if (element.text !== undefined) {
+                        return element.text;
+                    } else {
+                        return element;
+                    }
+                }
+
+                function clearLocalStorage() {
+                    const keys = ["receivedItems", "host", "port", "slotName", "password", "save", "stages"];
+                    keys.forEach((key) => localStorage.removeItem(key));
+                }
+
+                function save() {
+                    localStorage.setItem("receivedItems", JSON.stringify(receivedItems));
+                    localStorage.setItem("host", host.value);
+                    localStorage.setItem("port", port.value);
+                    localStorage.setItem("slotName", slotName.value);
+                    localStorage.setItem("password", password.value);
+                    localStorage.setItem("save", GameSave("0"));
+                }
+
+                const checkIdOffset = 10000;
+                const bookCheckOffset = 10100;
+                let prev = Stage_Status.slice();
+
+                setInterval(() => {
+                    loadStagesFromLocal();
+                    Stage_Status.forEach((status, stageIdx) => {
+                        if ((prev[stageIdx] & Beaten) === 0 && (status & Beaten) !== 0) {
+                            const checkId = stageIdx + checkIdOffset;
+                            sendCheckToAP(checkId);
+                        }
+                        if ((prev[stageIdx] & Booked) === 0 && (status & Booked) !== 0) {
+                            const bookCheckId = stageIdx + bookCheckOffset;
+                            sendCheckToAP(bookCheckId);
+                        }
+                    });
+                    prev = Stage_Status.slice();
+                }, 500);
+
+                function sendCheckToAP(id) {
+                    window.client.locations.check(id);
+                }
+
+                function getFirstEmptyInventorySlot() {
+                    for (let i = 16; i < Item_Inv.length; i++) {
+                        if (i === 40) continue; // Skip mouse slot
+                        if (Item_Inv[i] === 0) return i;
+                    }
+                    return -1;
+                }
+
+                function receiveItem(id, firstTime) {
+                    if (firstTime) {
+                        receivedItems.push(id);
+                    }
+
+                    const LOCATION_ID_OFFSET = 11000;
+                    const ITEM_ID_OFFSET = 12000;
+                    if (id >= LOCATION_ID_OFFSET && id < LOCATION_ID_OFFSET + 999) {
+                        const stageIdx = id - LOCATION_ID_OFFSET;
+                        Stage_Status[stageIdx] |= Unlocked;
+                        save();
+                        antiCheatSet();
+                    } else if (id >= ITEM_ID_OFFSET && id < ITEM_ID_OFFSET + 999) {
+                        const itemIdx = id - ITEM_ID_OFFSET;
+                        const slot = getFirstEmptyInventorySlot();
+                        if (slot !== -1) {
+                            Item_Inv[slot] = itemIdx;
+                            save();
+                            antiCheatSet();
+                        } else {
+                            pendingItems.push(itemIdx);
+                        }
+                    } else {
+                        addToChat("Tried to send id: ", id, ", but that failed, let the developer know!");
+                    }
+                }
+
+                setInterval(() => {
+                    let slot;
+                    while (pendingItems.length > 0 && (slot = getFirstEmptyInventorySlot()) !== -1) {
+                        const itemIdx = pendingItems.shift();
+                        Item_Inv[slot] = itemIdx;
+                        save();
+                        antiCheatSet();
+                    }
+                }, 500);
+
+                function loadStagesFromLocal() {
+                    const raw = localStorage.getItem("stages");
+                    if (!raw) return;
+                    const saved = JSON.parse(raw);
+                    for (let i = 0; i < saved.length; i++) {
+                        Stage_Status[i] |= saved[i] & Unlocked;
+                    }
+                }
+
+                const orig_loadGame = window.loadGame;
+                window.loadGame = function (save, slot) {
+                    const result = orig_loadGame(save, slot);
+                    loadStagesFromLocal();
+                    return result;
+                };
+
+                let _lastSeq = -1;
+                setInterval(() => {
+                    if (Sequence_Step === 6 && _lastSeq < 6 && !Item_Inv.slice(16).some((slot) => slot !== 0)) {
+                        receivedItems.forEach((id) => receiveItem(id, false));
+                        loadStagesFromLocal();
+                    }
+                    _lastSeq = Sequence_Step;
+                }, 501);
+
+                let _winReported = false;
+                setInterval(() => {
+                    if (!_winReported && (Stage_Status[stageIdToBeat] & Beaten) === Beaten) {
+                        _winReported = true;
+                        window.client.send({
+                            cmd: "StatusUpdate",
+                            status: 30,
+                        });
+                    }
+                }, 500);
+            </script>
+        </div>
+    </body>
+</html>
