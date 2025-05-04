@@ -2,9 +2,7 @@
 
 ## Table of Contents
 
-1. [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
+1. [Installation](#installation)
 2. [AP Integration](#ap-integration)
     - [Goal](#goal)
     - [Locations](#locations)
@@ -21,24 +19,14 @@
 
 ---
 
-## Getting Started
-
-### Prerequisites
-
-List any software or hardware requirements, e.g.:
-
--   A modern web browser (Chrome, Firefox, Edge...) (Only tested in Firefox)
--   Local web server
-
-### Installation
+## Installation
 
 -   Download the APworld for Stick Ranger
 -   Put the stick_ranger.apworld in the /custom_worlds folder inside Archipelago
 -   Generate a yaml or download the one in here
 -   Customize the yaml and put it in the /players folder inside Archipelago
 -   Generate a game
--   Run your local web server (Running "Archipelago Mod.html") (Need help? See [Local Web Server Help](#local-web-server-help))
--   Connect to and play the game (http://127.0.0.1:5500/Archipelago%20Mod.html)
+-   Connect to and play the game [here](https://kryen112.github.io/)
 
 ## AP Integration
 
@@ -72,7 +60,9 @@ Progression is locked into 5 zones:
 
 ### Options
 
-At the moment there are no options yet
+-   Enemy gold drop value multiplier
+-   XP gain multiplier
+-   Enemy drop multiplier
 
 ## Saving & Persistence
 
@@ -98,6 +88,8 @@ At the moment there are no options yet
 
 ## Contributing
 
+-   Local web server (Running "Archipelago Mod.html") (Need help? See [Local Web Server Help](#local-web-server-help))
+
 Feel free to contribute or mod
 
 ## License
@@ -110,7 +102,9 @@ Please contact inside the Archipelago Discord, inside the Stick Ranger post insi
 
 ## Acknowledgements
 
+-   Please support ha55ii, the original creator of Stick Ranger, by playing his games on [dan-ball](http://dan-ball.jp), including the original Stick Ranger and other web games.
 -   Thanks to Dire Storm from the Dan-Ball Discord for making a Vanilla Translation Mod
+-   Thanks to sunsetquesar for teaching me how to run a github.io page
 
 ## Local Web Server Help
 
