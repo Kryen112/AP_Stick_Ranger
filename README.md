@@ -17,6 +17,7 @@
 6. [License](#license)
 7. [Contact & Support](#contact--support)
 8. [Acknowledgements](#acknowledgements)
+9. [Local Web Server Help](#local-web-server-help)
 
 ---
 
@@ -36,8 +37,8 @@ List any software or hardware requirements, e.g.:
 -   Generate a yaml or download the one in here
 -   Customize the yaml and put it in the /players folder inside Archipelago
 -   Generate a game
--   Run your local web server (Running "Archipelago Mod.html")
--   Connect to and play the game (http://127.0.0.1:5500/Archipelago%20Mod/Archipelago%20Mod.html)
+-   Run your local web server (Running "Archipelago Mod.html") (Need help? See [Local Web Server Help](#local-web-server-help))
+-   Connect to and play the game (http://127.0.0.1:5500/Archipelago%20Mod.html)
 
 ## AP Integration
 
@@ -87,7 +88,7 @@ At the moment there are no options yet
 
 ## Roadmap
 
--   [X] Initial Release
+-   [x] Initial Release
 -   [ ] Additional yaml options
 -   [ ] DeathLink
 -   [ ] Book shop buy item preview
@@ -110,5 +111,15 @@ Please contact inside the Archipelago Discord, inside the Stick Ranger post insi
 ## Acknowledgements
 
 -   Thanks to Dire Storm from the Dan-Ball Discord for making a Vanilla Translation Mod
+
+## Local Web Server Help
+
+For easy setup of a local web server, do the following:
+
+-   Install [Visual Studio Code](https://code.visualstudio.com/)
+-   Install the [Live Server](https://marketplace.visualstudio.com/items/?itemName=ritwickdey.LiveServer) extension inside Visual Studio Code
+-   Open the "Archipelago Mod" folder inside Visual Studio Code
+-   Click ![go_live_image](assets/go_live.png) in the bottom-right of Visual Studio Code
+-   A tab on your preferred browser will now open on http://127.0.0.1:5500/Archipelago%20Mod.html, running the game!
 
 ---
