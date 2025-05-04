@@ -212,11 +212,6 @@
                         }
 
                         this._pendingConnect = true;
-                        this.connect.disabled = true;
-                        this.host.disabled = true;
-                        this.port.disabled = true;
-                        this.slotName.disabled = true;
-                        this.password.disabled = true;
                         this.apDiv.style.display = "none";
                         this.log("Waiting for the game to enter the map...");
                     }
@@ -315,8 +310,23 @@
                             if (text) this.log(text);
                         });
 
-                        this.client.connect(connectionInfo);
-                        this._connected = true;
+                        this.client.addListener(SERVER_PACKET_TYPE.CONNECTION_REFUSED, (packet) => {
+                            packet.errors.forEach(error => {
+                                this.log(error + "; please verify your connection settings.");
+                            });
+                        });
+
+                        try {
+                            await this.client.connect(connectionInfo);
+                            this._connected = true;
+                        } catch (error) {
+                            if (error[0].target instanceof WebSocket) {
+                                this.log("Cannot connect to: " + error[0].target.url + " Please check the hostname and port, or the server's online status.")
+                            }
+                            this._connected = false;
+                            Sequence_Step = 2;
+                            this.apDiv.style.display = "flex";
+                        }
                     }
 
                     async sendLocation(id) {
