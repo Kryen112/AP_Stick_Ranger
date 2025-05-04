@@ -3,12 +3,15 @@ from BaseClasses import Region, Item, Entrance
 from worlds.AutoWorld import World
 from .Items import SRItem, item_table, levels, filler
 from .Locations import SRLocation, location_table
+from .Options import SROptions
 from .Regions import region_info, locations_by_region
 from .Rules import set_rules
 
 class StickRanger(World):
     game = "Stick Ranger"
     worldversion = "0.6.1"
+    options_dataclass = SROptions
+    options: SROptions
     location_name_to_id = location_table
     item_name_to_id = { name: data.code for name, data in item_table.items() }
     start_inventory = {}
@@ -56,7 +59,10 @@ class StickRanger(World):
         return {
             "player_name": self.multiworld.get_player_name(self.player),
             "player_id": self.player,
-            "race": self.multiworld.is_race
+            "race": self.multiworld.is_race,
+            "gold_multiplier": self.options.gold_multiplier.value,
+            "xp_multiplier": self.options.xp_multiplier.value,
+            "drop_multiplier": self.options.drop_multiplier.value
         }
 
     set_rules = set_rules

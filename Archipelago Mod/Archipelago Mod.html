@@ -274,6 +274,13 @@
                             } else {
                                 await this.saveState();
                             }
+
+                            const goldMultiplier = this.client.data.slotData.gold_multiplier ?? 1;
+                            window.ArchipelagoMod.goldMultiplier = goldMultiplier;
+                            const xpMultiplier = this.client.data.slotData.xp_multiplier ?? 1;
+                            window.ArchipelagoMod.xpMultiplier = xpMultiplier;
+                            const dropMultiplier = this.client.data.slotData.drop_multiplier ?? 1;
+                            window.ArchipelagoMod.dropMultiplier = dropMultiplier;
                         });
 
                         this.client.addListener(SERVER_PACKET_TYPE.RECEIVED_ITEMS, async (packet) => {

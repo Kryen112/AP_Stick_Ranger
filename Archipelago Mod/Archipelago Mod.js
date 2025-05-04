@@ -58,6 +58,10 @@
 
 // general order: left,right,top,bottom,x_pos,y_pos,width,height
 // Global_Var, local_var, functionName(), ObjectFunction()
+
+// Load Archipelago modifications
+window.ArchipelagoMod = window.ArchipelagoMod || {};
+
 var Debug_Mode = 0;                         // display debug mode on/off       original name: ca
 var Curr_Sequence = ["0: Title Screen: launch game","1: Title Screen: spawn stickmen","2: Title Screen: enable buttons","3: Title Screen: class select","4: Title Screen: load new game","5: Title Screen: load saved game","6: Title Screen: world map","","","","10: Enemy Screen: load screen","11: Enemy Screen: fade in","12: Enemy Screen: play","13: Enemy Screen: fade out","","","","","","","20: Enemy Screen: pause","","","","","","","","","","30: Enemy Screen: game over","","","","","","","","","","40: Enemy Screen: game clear","","","","","","","","","","50: Town Screen: load screen","51: Town Screen: fade in","52: Town Screen: play","53: Town Screen: open shop","54: Town Screen: open book","55: Town Screen: open forget","","","","59: Town Screen: fade out","60: VS Mode Screen: ","61: VS Mode Screen: ","62: VS Mode Screen: ","63: VS Mode Screen: ","64: VS Mode Screen: ","","","","","","70: VS Mode Screen: ","71: VS Mode Screen: ","72: VS Mode Screen: ","73: VS Mode Screen: "]; // current game mode                (new variable)
 var Win_Width = 512;                        // width of game window            original name: ea
@@ -8424,7 +8428,7 @@ function enemyDeath(enemy,en_ID,xp_is_given){ // original name: Jg()
             xp_earned = 1;
     }
 
-    exp_mult = 100;
+    exp_mult = 100 * (window.ArchipelagoMod.xpMultiplier || 1);
     for (var s=0; s<Stickmen_Slots; s++){
         if (checkEff(Stickmen_Slots+s,Medal_Iron))
             exp_mult += getEff(Stickmen_Slots+s,Eff1);
@@ -8488,9 +8492,9 @@ function enemyDeath(enemy,en_ID,xp_is_given){ // original name: Jg()
     }
     //*/
     gold_value = EN_Info[enemy.EN_array_ID[en_ID]][En_Gold];
-    gold_value_mult = 100;
+    gold_value_mult = 100 * (window.ArchipelagoMod.goldMultiplier || 1);
     onigiri_rate_mult = 100;
-    drop_rate_mult = 100;
+    drop_rate_mult = 100 * (window.ArchipelagoMod.dropMultiplier || 1);
     for (var s=0; s<Stickmen_Slots; s++){
         if (checkEff(Stickmen_Slots+s,Medal_Bronze))
             drop_rate_mult += getEff(Stickmen_Slots+s,Eff1);
