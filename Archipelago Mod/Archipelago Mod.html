@@ -73,14 +73,12 @@
                     process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
                 </script>
             </div>
-            <div id="game_canvas">
-                <canvas id="cv"></canvas>
-                <script src="Archipelago Mod.js"></script>
-                <script type="text/javascript">
-                    Init("1", 1, 0);
-                </script>
-            </div>
-            <div id="saveCode">
+            <canvas id="cv"></canvas>
+            <script src="Archipelago Mod.js"></script>
+            <script type="text/javascript">
+                Init("1", 1, 0);
+            </script>
+            <div id="saveCode" style="width: 512px">
                 <script type="text/javascript">
                     function saveCode() {
                         var save_html = "";
@@ -111,6 +109,7 @@
                 <input type="submit" value="Full Screen" onclick="fullScreen();" />
             </div>
         </div>
+
         <div class="right-panel">
             <div id="APConnection">
                 <p>Archipelago connection</p>
@@ -137,275 +136,280 @@
             <div id="chat"></div>
 
             <script type="module">
-                const { Client, ITEMS_HANDLING_FLAGS, SERVER_PACKET_TYPE, CREATE_AS_HINT_MODE, CLIENT_STATUS, CONNECTION_STATUS, CLIENT_PACKET_TYPE, SetOperationsBuilder } = await import("https://unpkg.com/archipelago.js@1.0.0/dist/archipelago.js");
-                let receivedItems = [];
-                let pendingItems = [];
-                const stageIdToBeat = 88; // Hell Castle ID
-                const host = document.getElementById("host");
-                const port = document.getElementById("port");
-                const slotName = document.getElementById("slotName");
-                const password = document.getElementById("password");
-                const connectButton = document.getElementById("connect");
-                const apDiv = document.getElementById("APConnection");
-                const chatDiv = document.getElementById("chat");
+                import { Client, ITEMS_HANDLING_FLAGS, SERVER_PACKET_TYPE, CLIENT_STATUS, CLIENT_PACKET_TYPE } from "https://unpkg.com/archipelago.js@1.0.0/dist/archipelago.js";
 
-                connectButton.addEventListener("click", () => connectToAP());
+                // --- IndexedDB helpers ---
+                function openDB() {
+                    return new Promise((res, rej) => {
+                        const req = indexedDB.open("StickRangerAP", 1);
+                        req.onupgradeneeded = () => req.result.createObjectStore("savegames");
+                        req.onsuccess = () => res(req.result);
+                        req.onerror = () => rej(req.error);
+                    });
+                }
 
-                function connectToAP() {
-                    window.client = new Client();
+                async function getState(key) {
+                    const db = await openDB();
+                    return new Promise((res, rej) => {
+                        const tx = db.transaction("savegames", "readonly");
+                        const req = tx.objectStore("savegames").get(key);
+                        req.onsuccess = () => res(req.result);
+                        req.onerror = () => rej(req.error);
+                    });
+                }
 
-                    const connectionInfo = {
-                        hostname: host.value,
-                        port: parseInt(port.value),
-                        game: "Stick Ranger",
-                        name: slotName.value,
-                        password: password.value,
-                        items_handling: ITEMS_HANDLING_FLAGS.REMOTE_ALL,
-                    };
+                async function setState(key, val) {
+                    const db = await openDB();
+                    return new Promise((res, rej) => {
+                        const tx = db.transaction("savegames", "readwrite");
+                        tx.objectStore("savegames").put(val, key);
+                        tx.oncomplete = () => res();
+                        tx.onerror = () => rej(tx.error);
+                    });
+                }
+                // ---------------------------
 
-                    window.client.addListener(SERVER_PACKET_TYPE.CONNECTED, (packet) => {
-                        if (localStorage.getItem("host") === host.value && localStorage.getItem("port") === port.value && localStorage.getItem("slotName") === slotName.value && localStorage.getItem("password") === password.value) {
-                            receivedItems = JSON.parse(localStorage.getItem("receivedItems"));
-                            GameLoad(localStorage.getItem("save").replace(/\x0D\x0A|\x0D|\x0A/g, ""));
-                            receivedItems.forEach((id) => receiveItem(id, false));
-                            loadStagesFromLocal();
-                        } else {
-                            clearLocalStorage();
-                            save();
+                class APIntegration {
+                    //TODO's:
+                    //Re-send Stages when making a new game after obtaining locations (what about own location checks?)
+                    constructor() {
+                        this.STAGE_COMPLETE_OFFSET = 10000;
+                        this.BOOK_OFFSET = 10100;
+                        this.LOC_OFFSET = 11000;
+                        this.ITEM_OFFSET = 12000;
+                        this.INV_START = 16;
+                        this.MOUSE_SLOT = 40;
+                        this.STAGE_TO_WIN = 88; // Hell Castle ID
+
+                        this._pendingConnect = false;
+                        this._connected = false;
+                        this.receivedItems = [];
+                        this.pendingItems = [];
+                        this.prevStage = [...Stage_Status];
+                        this.winReported = false;
+                        this.lastSequence = -1;
+                        this.storageKey = "";
+
+                        this.host = document.getElementById("host");
+                        this.port = document.getElementById("port");
+                        this.slotName = document.getElementById("slotName");
+                        this.password = document.getElementById("password");
+                        this.connect = document.getElementById("connect");
+                        this.chat = document.getElementById("chat");
+                        this.apDiv = document.getElementById("APConnection");
+
+                        this.connect.addEventListener("click", () => this._onConnectClick());
+                        window.addEventListener("beforeunload", async () => await this._onUnload()); //TODO this is now saync and it could break, look chatgpt
+                        this._tick = this._tick.bind(this);
+                        requestAnimationFrame(this._tick);
+                    }
+
+                    async _onConnectClick() {
+                        this.storageKey = [this.host.value, this.port.value, "Stick Ranger", this.slotName.value].join(":");
+
+                        const saved = await getState(this.storageKey);
+                        if (saved) {
+                            this.receivedItems = saved.receivedItems;
+                            GameLoad(saved.save.replace(/\r\n|\r|\n/g, ""));
                         }
-                    });
 
-                    window.client.addListener(SERVER_PACKET_TYPE.ROOM_UPDATE, (packet) => {
-                        console.log("Room update: ", packet);
-                    });
+                        this._pendingConnect = true;
+                        this.connect.disabled = true;
+                        this.host.disabled = true;
+                        this.port.disabled = true;
+                        this.slotName.disabled = true;
+                        this.password.disabled = true;
+                        this.apDiv.style.display = "none";
+                        this.log("Waiting for the game to enter the map...");
+                    }
 
-                    window.client.addListener(SERVER_PACKET_TYPE.RECEIVED_ITEMS, (packet) => {
-                        console.log("Received Items: ", packet);
+                    log(msg) {
+                        const d = document.createElement("div");
+                        d.style.borderBottom = "2px solid rgb(44, 44, 44)";
+                        d.textContent = msg;
+                        this.chat.append(d);
+                        this.chat.scrollTop = this.chat.scrollHeight;
+                    }
 
-                        if (packet.items.length > 1 || (packet.items.length === 1 && packet.items[0].item === receivedItems[0])) {
-                            var serverItems = [];
+                    async saveState() {
+                        if (!this.storageKey) return;
+                        await setState(this.storageKey, {
+                            receivedItems: this.receivedItems,
+                            stages: Stage_Status,
+                            save: GameSave("0"),
+                        });
+                    }
 
-                            packet.items.forEach((item) => {
-                                receiveItem(item.item, false);
-                                serverItems.push(item.item);
-                            });
+                    async _onUnload() {
+                        await this.saveState();
+                        this.client?.disconnect();
+                    }
 
-                            let difference = serverItems.filter((item) => !receivedItems.includes(item));
-                            console.log("serverItems");
-                            console.log(serverItems);
-
-                            console.log("receivedItems");
-                            console.log(receivedItems);
-
-                            console.log("difference");
-                            console.log(difference);
-
-                            difference.forEach((id) => {
-                                receiveItem(id, true);
-                            });
-                        } else {
-                            receiveItem(packet.items[0].item, true);
+                    restoreStagesBeaten(savedStages) {
+                        for (let i = 0; i < savedStages.length; i++) {
+                            Stage_Status[i] |= savedStages[i];
                         }
-                        localStorage.setItem("stages", JSON.stringify(Stage_Status));
-                    });
+                        antiCheatSet();
+                        return Stage_Status;
+                    }
 
-                    window.client.addListener(SERVER_PACKET_TYPE.LOCATION_INFO, (packet) => {
-                        console.log("Hint: ", packet);
-                    });
+                    async _connect() {
+                        this.client = new Client();
+                        const connectionInfo = {
+                            hostname: this.host.value,
+                            port: parseInt(this.port.value),
+                            game: "Stick Ranger",
+                            name: this.slotName.value,
+                            password: this.password.value,
+                            items_handling: ITEMS_HANDLING_FLAGS.REMOTE_ALL,
+                        };
 
-                    window.client.addListener(SERVER_PACKET_TYPE.PRINT_JSON, (packet) => {
-                        const msg = packetToText(packet.data);
-                        if (msg === "") {
-                            return;
-                        }
-                        console.log(packet);
-                        addToChat(msg);
-                    });
+                        this.storageKey = [connectionInfo.hostname, connectionInfo.port, connectionInfo.game, connectionInfo.name].join(":");
 
-                    window.client
-                        .connect(connectionInfo)
-                        .then(() => {
-                            connectButton.disabled = true;
-                            host.disabled = true;
-                            port.disabled = true;
-                            slotName.disabled = true;
-                            password.disabled = true;
-                            apDiv.style.display = "none";
-                        })
-                        .catch((error) => {
-                            console.error("Failed to connect:", error[0].error.target.url);
-                            addToChat("Failed to connect to Archipelago.");
-                            connectButton.disabled = true;
-                            host.disabled = true;
-                            port.disabled = true;
-                            slotName.disabled = true;
-                            password.disabled = true;
+                        this.client.addListener(SERVER_PACKET_TYPE.CONNECTED, async () => {
+                            const saved = await getState(this.storageKey);
+                            if (saved) {
+                                this.receivedItems = saved.receivedItems;
+                                Stage_Status = this.restoreStagesBeaten(saved.stages);
+                            } else {
+                                await this.saveState();
+                            }
                         });
 
-                    window.addEventListener("beforeunload", () => {
-                        localStorage.setItem("save", GameSave("0"));
-                        localStorage.setItem("stages", JSON.stringify(Stage_Status));
-                        window.client.disconnect();
-                    });
-                }
+                        this.client.addListener(SERVER_PACKET_TYPE.RECEIVED_ITEMS, async (packet) => {
+                            if (packet.items.length > 1 || (packet.items.length === 1 && packet.items[0].item === this.receivedItems[0])) {
+                                const serverItems = packet.items.map((i) => i.item);
 
-                function addToChat(text) {
-                    const msg = document.createElement("div");
-                    msg.style.borderBottom = "2px solid rgb(44, 44, 44)";
-                    msg.textContent = text;
-                    chatDiv.appendChild(msg);
-                    chatDiv.scrollTop = chatDiv.scrollHeight;
-                }
+                                for (const id of serverItems) {
+                                    await this._applyItem(id, false);
+                                }
 
-                function packetToText(packet) {
-                    if (packet === undefined) {
-                        return "";
+                                let difference = serverItems.filter((item) => !this.receivedItems.includes(item));
+                                console.log(difference);
+                                for (const id of difference) {
+                                    await this._applyItem(id, true);
+                                }
+                            } else {
+                                await this._applyItem(packet.items[0].item, true);
+                            }
+                        });
+
+                        this.client.addListener(SERVER_PACKET_TYPE.PRINT_JSON, (packet) => {
+                            const text = packet.data
+                                .map((el) => {
+                                    const id = Number(el.text);
+                                    let pid = this.client.data.slotData.player_id;
+                                    if (el.player !== undefined) pid = Number(el.player);
+                                    if (el.type === "player_id") return this.client.players.name(id);
+                                    if (el.type === "item_id") return this.client.items.name(this.client.players.game(pid), id);
+                                    if (el.type === "location_id") return this.client.locations.name(this.client.players.game(pid), id);
+                                    if (el.text) return el.text;
+                                    return el.text || "";
+                                })
+                                .join(" ");
+                            if (text) this.log(text);
+                        });
+
+                        this.client.connect(connectionInfo);
+                        this._connected = true;
                     }
-                    var msg = "";
-                    packet.forEach((element) => {
-                        msg += typeToText(element) + " ";
-                    });
-                    return msg;
-                }
 
-                function typeToText(element) {
-                    var id = -1;
-                    id = Number(element.text);
-                    var playerId = window.client.data.slotData.player_id;
-
-                    if (element.player !== undefined) {
-                        playerId = Number(element.player);
+                    async sendLocation(id) {
+                        if (this.client) this.client.locations.check(id);
+                        await this.saveState();
                     }
-                    if (element.type === "player_id" && !isNaN(id)) {
-                        return window.client.players.name(Number(id));
-                    } else if (element.type === "item_id" && !isNaN(id)) {
-                        return window.client.items.name(window.client.players.game(Number(playerId)), Number(id));
-                    } else if (element.type === "location_id" && !isNaN(id)) {
-                        return window.client.locations.name(window.client.players.game(Number(playerId)), Number(id));
-                    } else if (element.text !== undefined) {
-                        return element.text;
-                    } else {
-                        return element;
-                    }
-                }
 
-                function clearLocalStorage() {
-                    const keys = ["receivedItems", "host", "port", "slotName", "password", "save", "stages"];
-                    keys.forEach((key) => localStorage.removeItem(key));
-                }
-
-                function save() {
-                    localStorage.setItem("receivedItems", JSON.stringify(receivedItems));
-                    localStorage.setItem("host", host.value);
-                    localStorage.setItem("port", port.value);
-                    localStorage.setItem("slotName", slotName.value);
-                    localStorage.setItem("password", password.value);
-                    localStorage.setItem("save", GameSave("0"));
-                }
-
-                const checkIdOffset = 10000;
-                const bookCheckOffset = 10100;
-                let prev = Stage_Status.slice();
-
-                setInterval(() => {
-                    loadStagesFromLocal();
-                    Stage_Status.forEach((status, stageIdx) => {
-                        if ((prev[stageIdx] & Beaten) === 0 && (status & Beaten) !== 0) {
-                            const checkId = stageIdx + checkIdOffset;
-                            sendCheckToAP(checkId);
+                    async _applyItem(id, firstTime) {
+                        if (firstTime) {
+                            this.receivedItems.push(id);
                         }
-                        if ((prev[stageIdx] & Booked) === 0 && (status & Booked) !== 0) {
-                            const bookCheckId = stageIdx + bookCheckOffset;
-                            sendCheckToAP(bookCheckId);
+
+                        // location unlock
+                        if (id >= this.LOC_OFFSET && id < this.LOC_OFFSET + 999) {
+                            Stage_Status[id - this.LOC_OFFSET] |= Unlocked;
                         }
-                    });
-                    prev = Stage_Status.slice();
-                }, 500);
 
-                function sendCheckToAP(id) {
-                    window.client.locations.check(id);
-                }
+                        // item grant
+                        else if (id >= this.ITEM_OFFSET && id < this.ITEM_OFFSET + 999 && firstTime) {
+                            const idx = id - this.ITEM_OFFSET;
+                            const slot = this._firstEmptyInvSlot();
+                            if (slot >= 0) Item_Inv[slot] = idx;
+                            else this.pendingItems.push(idx);
+                        }
 
-                function getFirstEmptyInventorySlot() {
-                    for (let i = 16; i < Item_Inv.length; i++) {
-                        if (i === 40) continue; // Skip mouse slot
-                        if (Item_Inv[i] === 0) return i;
-                    }
-                    return -1;
-                }
-
-                function receiveItem(id, firstTime) {
-                    if (firstTime) {
-                        receivedItems.push(id);
-                    }
-
-                    const LOCATION_ID_OFFSET = 11000;
-                    const ITEM_ID_OFFSET = 12000;
-                    if (id >= LOCATION_ID_OFFSET && id < LOCATION_ID_OFFSET + 999) {
-                        const stageIdx = id - LOCATION_ID_OFFSET;
-                        Stage_Status[stageIdx] |= Unlocked;
-                        save();
                         antiCheatSet();
-                    } else if (id >= ITEM_ID_OFFSET && id < ITEM_ID_OFFSET + 999) {
-                        const itemIdx = id - ITEM_ID_OFFSET;
-                        const slot = getFirstEmptyInventorySlot();
-                        if (slot !== -1) {
-                            Item_Inv[slot] = itemIdx;
-                            save();
+                        await this.saveState();
+                    }
+
+                    _firstEmptyInvSlot() {
+                        for (let i = this.INV_START; i < Item_Inv.length; i++) {
+                            if (i === this.MOUSE_SLOT) continue;
+                            if (!Item_Inv[i]) return i;
+                        }
+                        return -1;
+                    }
+
+                    async _flushPending() {
+                        let slot;
+                        while (this.pendingItems.length && (slot = this._firstEmptyInvSlot()) >= 0) {
+                            Item_Inv[slot] = this.pendingItems.shift();
+                            await this.saveState();
                             antiCheatSet();
-                        } else {
-                            pendingItems.push(itemIdx);
                         }
-                    } else {
-                        addToChat("Tried to send id: ", id, ", but that failed, let the developer know!");
                     }
-                }
 
-                setInterval(() => {
-                    let slot;
-                    while (pendingItems.length > 0 && (slot = getFirstEmptyInventorySlot()) !== -1) {
-                        const itemIdx = pendingItems.shift();
-                        Item_Inv[slot] = itemIdx;
-                        save();
-                        antiCheatSet();
-                    }
-                }, 500);
-
-                function loadStagesFromLocal() {
-                    const raw = localStorage.getItem("stages");
-                    if (!raw) return;
-                    const saved = JSON.parse(raw);
-                    for (let i = 0; i < saved.length; i++) {
-                        Stage_Status[i] |= saved[i] & Unlocked;
-                    }
-                }
-
-                const orig_loadGame = window.loadGame;
-                window.loadGame = function (save, slot) {
-                    const result = orig_loadGame(save, slot);
-                    loadStagesFromLocal();
-                    return result;
-                };
-
-                let _lastSeq = -1;
-                setInterval(() => {
-                    if (Sequence_Step === 6 && _lastSeq < 6 && !Item_Inv.slice(16).some((slot) => slot !== 0)) {
-                        receivedItems.forEach((id) => receiveItem(id, false));
-                        loadStagesFromLocal();
-                    }
-                    _lastSeq = Sequence_Step;
-                }, 501);
-
-                let _winReported = false;
-                setInterval(() => {
-                    if (!_winReported && (Stage_Status[stageIdToBeat] & Beaten) === Beaten) {
-                        _winReported = true;
-                        window.client.send({
-                            cmd: "StatusUpdate",
-                            status: 30,
+                    _tick() {
+                        // fire off the async work, but catch errors so the loop never dies
+                        this._doTickWork().catch((err) => {
+                            console.error("Tick error:", err);
                         });
+
+                        requestAnimationFrame(this._tick);
                     }
-                }, 500);
+
+                    async _doTickWork() {
+                        //TODO this is now saync and it could break, look chatgpt
+                        // scan beaten/booked changes
+                        for (let i = 0; i < Stage_Status.length; i++) {
+                            if ((this.prevStage[i] & Beaten) === 0 && (Stage_Status[i] & Beaten) !== 0) {
+                                await this.sendLocation(i + this.STAGE_COMPLETE_OFFSET);
+                            }
+                            if ((this.prevStage[i] & Booked) === 0 && (Stage_Status[i] & Booked) !== 0) {
+                                await this.sendLocation(i + 10100);
+                            }
+                        }
+                        this.prevStage = [...Stage_Status];
+
+                        // flush inventory
+                        await this._flushPending();
+
+                        // report win
+                        if (!this.winReported && (Stage_Status[this.STAGE_TO_WIN] & Beaten) === Beaten) {
+                            this.winReported = true;
+                            this.client?.send({
+                                cmd: "StatusUpdate",
+                                status: 30,
+                            });
+                        }
+
+                        // on "new game", give everything
+                        if (Sequence_Step === 6 && this.lastSequence === 4) {
+                            this.client?.send({
+                                cmd: CLIENT_PACKET_TYPE.SYNC,
+                            });
+                        }
+
+                        // connect once game is properly loaded
+                        if (Sequence_Step === 6 && this._pendingConnect && !this._connected) {
+                            this._pendingConnect = false;
+                            this._connect();
+                        }
+
+                        this.lastSequence = Sequence_Step;
+                    }
+                }
+
+                window.ap = new APIntegration();
             </script>
         </div>
     </body>
