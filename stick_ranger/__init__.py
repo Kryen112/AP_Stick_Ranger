@@ -43,7 +43,22 @@ class StickRanger(World):
         return SRItem(name, item_data.classification, item_data.code, self.player)
 
     def create_items(self):
+        starter_choices = [
+            "Unlock Grassland 1",
+            "Unlock Grassland 2",
+            "Unlock Grassland 3",
+            "Unlock Grassland 4",
+            "Unlock Hill Country 1",
+        ]
+        starter_item_name = random.choice(starter_choices)
+        starter_item = self.create_item(starter_item_name)
+        starter_loc_name = random.choice(["Opening Street", "Opening Street Book"])
+        starter_loc = self.multiworld.get_location(starter_loc_name, self.player)
+        starter_loc.place_locked_item(starter_item)
+
         for level in levels:
+            if level.item_name == starter_item_name:
+                continue
             self.multiworld.itempool.append(self.create_item(level.item_name))
 
     def pre_fill(self):
