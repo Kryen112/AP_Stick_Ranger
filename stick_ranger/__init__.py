@@ -2,9 +2,9 @@ import random
 from BaseClasses import Region, Item, Entrance
 from worlds.AutoWorld import World
 from .Items import SRItem, item_table, levels, filler
-from .Locations import SRLocation, location_table
+from .Locations import SRLocation, location_table, location_name_to_id
 from .Options import SROptions
-from .Regions import region_info, locations_by_region
+from .Regions import regions
 from .Rules import set_rules
 
 class StickRanger(World):
@@ -12,31 +12,36 @@ class StickRanger(World):
     worldversion = "0.6.1"
     options_dataclass = SROptions
     options: SROptions
-    location_name_to_id = location_table
+    location_name_to_id = location_name_to_id
     item_name_to_id = { name: data.code for name, data in item_table.items() }
     start_inventory = {}
 
     def create_regions(self):
-        for region_name, exits in region_info["regions"]:
+        menu_region = Region("Menu", self.player, self.multiworld)
+        world_map_region = Region("World Map", self.player, self.multiworld)
+        self.multiworld.regions += [menu_region, world_map_region]
+        menu_to_world_map_exit = Entrance(self.player, "World Map", menu_region)
+        menu_region.exits.append(menu_to_world_map_exit)
+        menu_to_world_map_exit.connect(world_map_region)
+
+        # Create regions and locations
+        for region_name in regions:
             region = Region(region_name, self.player, self.multiworld)
-            for exit_name in exits:
-                entrance = Entrance(self.player, exit_name, region)
-                if exit_name != "New Game":
-                    progression_item = f"Unlock {exit_name}"
-                    entrance.access_rule = lambda state, p = progression_item: state.has(p, self.player)
-                region.exits.append(entrance)
+            region.add_locations({
+                loc["name"]: loc_id
+                for loc_id, loc in location_table.items()
+                if loc["region"] == region_name
+            }, SRLocation)
             self.multiworld.regions.append(region)
 
-        for entrance_name, region_name in region_info["mandatory_connections"]:
-            entrance = self.multiworld.get_entrance(entrance_name, self.player)
-            region = self.multiworld.get_region(region_name, self.player)
-            entrance.connect(region)
+            world_map_exit = Entrance(self.player, region_name, world_map_region)
+            if region_name != "Opening Street":
+                world_map_exit.access_rule = lambda st, item=f"Unlock {region_name}": st.has(item, self.player)
+            world_map_region.exits.append(world_map_exit)
+            world_map_exit.connect(region)
 
-        for region_name, locations in locations_by_region.items():
-            region = self.multiworld.get_region(region_name, self.player)
-            for location_name in locations:
-                location = SRLocation(self.player, location_name, self.location_name_to_id.get(location_name, None), region)
-                region.locations.append(location)
+        # Sum locations for items creation
+        self.location_count = len(self.multiworld.get_locations(self.player))
 
     def create_item(self, name: str) -> SRItem:
         item_data = item_table.get(name)
@@ -48,11 +53,11 @@ class StickRanger(World):
             "Unlock Grassland 2",
             "Unlock Grassland 3",
             "Unlock Grassland 4",
-            "Unlock Hill Country 1",
+            "Unlock Hill Country 1"
         ]
         starter_item_name = random.choice(starter_choices)
         starter_item = self.create_item(starter_item_name)
-        starter_loc_name = random.choice(["Opening Street", "Opening Street Book"])
+        starter_loc_name = random.choice(["Opening Street Exit", "Opening Street Book"])
         starter_loc = self.multiworld.get_location(starter_loc_name, self.player)
         starter_loc.place_locked_item(starter_item)
 
