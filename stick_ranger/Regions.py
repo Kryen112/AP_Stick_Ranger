@@ -55,8 +55,7 @@ locations_by_region = {
         "Castle Gate",
         "Castle Gate Book",
         "Castle",
-        "Castle Book",
-        "Village"
+        "Castle Book"
     ],
     "Sea": [
         "Seaside 1",
@@ -112,8 +111,7 @@ locations_by_region = {
         "Beach 3",
         "Beach 3 Book",
         "Pyramid",
-        "Pyramid Book",
-        "Resort"
+        "Pyramid Book"
     ],
     "Snow": [
         "Cavern 4",
@@ -197,8 +195,6 @@ locations_by_region = {
         "Blood Lake",
         "Blood Lake Book",
         "Volcano",
-        "Volcano Book",
-        "Forget Tree",
-        "Island"
+        "Volcano Book"
     ]
 }
