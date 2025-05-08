@@ -88,8 +88,6 @@ Progression is locked into 5 zones:
 
 ## Contributing
 
--   Local web server (Running "Archipelago Mod.html") (Need help? See [Local Web Server Help](#local-web-server-help))
-
 Feel free to contribute or mod
 
 ## License
@@ -105,15 +103,5 @@ Please contact inside the Archipelago Discord, inside the Stick Ranger post insi
 -   Please support ha55ii, the original creator of Stick Ranger, by playing his games on [dan-ball](http://dan-ball.jp), including the original Stick Ranger and other web games.
 -   Thanks to Dire Storm from the Dan-Ball Discord for making a Vanilla Translation Mod
 -   Thanks to sunsetquesar for teaching me how to run a github.io page
-
-## Local Web Server Help
-
-For easy setup of a local web server, do the following:
-
--   Install [Visual Studio Code](https://code.visualstudio.com/)
--   Install the [Live Server](https://marketplace.visualstudio.com/items/?itemName=ritwickdey.LiveServer) extension inside Visual Studio Code
--   Open the "Archipelago Mod" folder inside Visual Studio Code
--   Click ![go_live_image](assets/go_live.png) in the bottom-right of Visual Studio Code
--   A tab on your preferred browser will now open on http://127.0.0.1:5500/Archipelago%20Mod.html, running the game!
 
 ---
