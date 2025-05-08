@@ -83,7 +83,8 @@ class StickRanger(World):
             "gold_multiplier": self.options.gold_multiplier.value,
             "xp_multiplier": self.options.xp_multiplier.value,
             "drop_multiplier": self.options.drop_multiplier.value,
-            "randomize_book_costs": self.options.randomize_book_costs.value
+            "randomize_book_costs": self.options.randomize_book_costs.value,
+            "shop_hints": self.options.shop_hints.value
         }
 
     set_rules = set_rules

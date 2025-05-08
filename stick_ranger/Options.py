@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import Choice, PerGameCommonOptions
+from Options import Choice, DefaultOnToggle, PerGameCommonOptions
 
 class GoldMultiplier(Choice):
     """Multiplies the gold dropped by enemies."""
@@ -28,6 +28,10 @@ class DropMultiplier(Choice):
     option_10x = 10
     default = 1
 
+class ShopHints(DefaultOnToggle):
+    """When enabled, the Book shop will show you what you are buying and it will send out hints for buyable Books."""
+    display_name = "Shop Hints"
+
 class BookCostRandomizer(Choice):
     """
     Randomizes the costs of Books.
@@ -48,4 +52,5 @@ class SROptions(PerGameCommonOptions):
     gold_multiplier: GoldMultiplier
     xp_multiplier: XPMultiplier
     drop_multiplier: DropMultiplier
+    shop_hints: ShopHints
     randomize_book_costs: BookCostRandomizer
