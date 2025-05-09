@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import Choice, DefaultOnToggle, PerGameCommonOptions
+from Options import Choice, DefaultOnToggle, PerGameCommonOptions, DeathLink
 
 class GoldMultiplier(Choice):
     """Multiplies the gold dropped by enemies."""
@@ -54,3 +54,4 @@ class SROptions(PerGameCommonOptions):
     drop_multiplier: DropMultiplier
     shop_hints: ShopHints
     randomize_book_costs: BookCostRandomizer
+    death_link: DeathLink
