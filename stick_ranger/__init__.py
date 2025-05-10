@@ -1,7 +1,7 @@
 import random
 from BaseClasses import Region, Item, Entrance
 from worlds.AutoWorld import World
-from .Items import SRItem, item_table, levels, filler
+from .Items import SRItem, item_table, levels, filler, traps
 from .Locations import SRLocation, location_table, location_name_to_id
 from .Options import SROptions
 from .Regions import regions
@@ -68,12 +68,26 @@ class StickRanger(World):
 
     def pre_fill(self):
         missing_locs = len(self.multiworld.get_unfilled_locations()) - len(self.multiworld.itempool)
-        if missing_locs > 0:
-            self.multiworld.itempool += [self.create_filler() for _ in range(missing_locs)]
+        if missing_locs <= 0:
+            return
 
-    def create_filler(self) -> Item:
-        item_data = random.choice(filler)
-        return self.create_item(item_data.item_name)
+        traps_option = self.options.traps
+        traps_percentage = 0
+        if traps_option == 1:
+            traps_percentage = 10
+        elif traps_option > 1:
+            traps_percentage = 25 * traps_option
+
+        trap_count = int((traps_percentage / 100) * missing_locs)
+        trap_weights = [trap.weight for trap in traps]
+        self.multiworld.itempool += [
+            self.create_item(random.choices(traps, weights=trap_weights, k=1)[0].item_name) for _ in range(trap_count)
+        ]
+
+        filler_count = missing_locs - trap_count
+        self.multiworld.itempool += [
+            self.create_item(random.choice(filler).item_name) for _ in range(filler_count)
+        ]
 
     def fill_slot_data(self) -> dict:
         return {
@@ -85,6 +99,7 @@ class StickRanger(World):
             "drop_multiplier": self.options.drop_multiplier.value,
             "randomize_book_costs": self.options.randomize_book_costs.value,
             "shop_hints": self.options.shop_hints.value,
+            "traps": self.options.traps.value,
             "death_link": self.options.death_link.value
         }
 
