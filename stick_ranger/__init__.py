@@ -73,9 +73,7 @@ class StickRanger(World):
 
         traps_option = self.options.traps
         traps_percentage = 0
-        if traps_option == 1:
-            traps_percentage = 10
-        elif traps_option > 1:
+        if traps_option >= 1:
             traps_percentage = 25 * traps_option
 
         trap_count = int((traps_percentage / 100) * missing_locs)
