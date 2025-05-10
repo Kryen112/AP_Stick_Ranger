@@ -7,6 +7,12 @@ class ItemData(NamedTuple):
     classification: ItemClassification
     region: str
 
+class TrapItemData(NamedTuple):
+    code: int
+    item_name: str
+    classification: ItemClassification
+    weight: int
+
 class SRItem(Item):
     game = "Stick Ranger"
 
@@ -646,9 +652,18 @@ filler = [
     ItemData(12404, "Poison Spirit", ItemClassification.filler, "any")
 ]
 
+traps = [
+    TrapItemData(13000, "Unequip items", ItemClassification.trap, 50),
+    TrapItemData(13001, "-50% gold", ItemClassification.trap, 10),
+    TrapItemData(13002, "Kill a Ranger", ItemClassification.trap, 50),
+    TrapItemData(13003, "Freeze Rangers", ItemClassification.trap, 25),
+    TrapItemData(13004, "Spawn enemies", ItemClassification.trap, 15),
+]
+
 item_list = []
 item_list += levels
 item_list += filler
+item_list += traps
 
 item_table = {item.item_name: item for item in item_list}
 items_by_id = {item.code: item for item in item_list}
