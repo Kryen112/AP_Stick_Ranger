@@ -1,7 +1,7 @@
 import random
 from BaseClasses import Region, Item, Entrance
 from worlds.AutoWorld import World
-from .Items import SRItem, item_table, levels, filler, traps
+from .Items import SRItem, item_table, stages, filler, traps
 from .Locations import SRLocation, location_table, location_name_to_id
 from .Options import SROptions
 from .Regions import regions
@@ -61,7 +61,7 @@ class StickRanger(World):
         starter_loc = self.multiworld.get_location(starter_loc_name, self.player)
         starter_loc.place_locked_item(starter_item)
 
-        for level in levels:
+        for level in stages:
             if level.item_name == starter_item_name:
                 continue
             self.multiworld.itempool.append(self.create_item(level.item_name))
@@ -92,6 +92,9 @@ class StickRanger(World):
             "player_name": self.multiworld.get_player_name(self.player),
             "player_id": self.player,
             "race": self.multiworld.is_race,
+            "shuffle_books": self.options.shuffle_books,
+            "shuffle_enemies": self.options.shuffle_enemies,
+            "shuffle_levelups": self.options.shuffle_levelups,
             "gold_multiplier": self.options.gold_multiplier.value,
             "xp_multiplier": self.options.xp_multiplier.value,
             "drop_multiplier": self.options.drop_multiplier.value,
