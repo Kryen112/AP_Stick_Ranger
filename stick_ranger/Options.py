@@ -1,5 +1,36 @@
 from dataclasses import dataclass
-from Options import Choice, DefaultOnToggle, PerGameCommonOptions, DeathLink
+from Options import Choice, Toggle, DefaultOnToggle, PerGameCommonOptions, DeathLink
+
+class ShuffleBooks(DefaultOnToggle):
+    """
+    Controls whether buying Books are checks.
+    Either Shuffle Books or Shuffle Enemies needs to be turned on.
+    """
+    display_name = "Shuffle Books"
+
+class ShuffleEnemies(Choice):
+    """
+    Controls whether enemies drop a check.
+    Either Shuffle Enemies or Shuffle Books needs to be turned on.
+
+    common enemies: Every non-boss enemy has a 5% chance to drop.
+    boss enemies:   Every boss enemy has a 25% chance to drop.
+    both:           Both settings are on.
+    """
+    display_name = "Shuffle Enemies"
+    option_common_enemies = 1
+    option_boss_enemies = 2
+    option_both = 3
+    option_off = 0
+    default = 0
+
+class ShuffleLevelUps(Toggle):
+    """
+    Controls whether to shuffle level ups into the pool.
+    EXP is gained as normal, but gives a check instead of a level up.
+    """
+    display_name = "Shuffle level ups"
+    default = 0
 
 class GoldMultiplier(Choice):
     """Multiplies the gold dropped by enemies."""
@@ -35,6 +66,7 @@ class ShopHints(DefaultOnToggle):
 class BookCostRandomizer(Choice):
     """
     Randomizes the costs of Books.
+
     vanilla:                  Costs are vanilla (1000*stage number).
     random_balanced:          Costs are randomized, but still balanced.
     random_extreme:           Costs can range between 1-99999.
@@ -59,6 +91,9 @@ class Traps(Choice):
 
 @dataclass
 class SROptions(PerGameCommonOptions):
+    shuffle_books: ShuffleBooks
+    shuffle_enemies: ShuffleEnemies
+    shuffle_levelups: ShuffleLevelUps
     gold_multiplier: GoldMultiplier
     xp_multiplier: XPMultiplier
     drop_multiplier: DropMultiplier

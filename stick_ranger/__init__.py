@@ -1,8 +1,8 @@
 import random
 from BaseClasses import Region, Item, Entrance
 from worlds.AutoWorld import World
-from .Items import SRItem, item_table, levels, filler, traps
-from .Locations import SRLocation, location_table, location_name_to_id
+from .Items import SRItem, item_table, stages, filler, traps
+from .Locations import SRLocation, stages_table, books_table, enemies_table, location_name_to_id
 from .Options import SROptions
 from .Regions import regions
 from .Rules import set_rules
@@ -27,11 +27,54 @@ class StickRanger(World):
         # Create regions and locations
         for region_name in regions:
             region = Region(region_name, self.player, self.multiworld)
-            region.add_locations({
+
+            # 1) always add stage‐exits
+            stage_locs = {
                 loc["name"]: loc_id
-                for loc_id, loc in location_table.items()
+                for loc_id, loc in stages_table.items()
                 if loc["region"] == region_name
-            }, SRLocation)
+            }
+            region.add_locations(stage_locs, SRLocation)
+
+            # TODO Make sure either books, enemies or levelups is selected!
+            # 2) optionally add books
+            if self.options.shuffle_books == 1:
+                book_locs = {
+                    loc["name"]: loc_id
+                    for loc_id, loc in books_table.items()
+                    if loc["region"] == region_name
+                }
+                region.add_locations(book_locs, SRLocation)
+
+            # 3) optionally add enemies
+            shuffle_enemies = self.options.shuffle_enemies
+            if shuffle_enemies == 1:
+                # only non‐boss enemies
+                enemy_locs = {
+                    loc["name"]: loc_id
+                    for loc_id, loc in enemies_table.items()
+                    if loc["region"] == region_name
+                       and "boss" not in loc["name"].lower()
+                }
+                region.add_locations(enemy_locs, SRLocation)
+            elif shuffle_enemies == 2:
+                # only bosses
+                boss_locs = {
+                    loc["name"]: loc_id
+                    for loc_id, loc in enemies_table.items()
+                    if loc["region"] == region_name
+                       and "boss" in loc["name"].lower()
+                }
+                region.add_locations(boss_locs, SRLocation)
+            elif shuffle_enemies == 3:
+                # all enemies
+                all_enemy_locs = {
+                    loc["name"]: loc_id
+                    for loc_id, loc in enemies_table.items()
+                    if loc["region"] == region_name
+                }
+                region.add_locations(all_enemy_locs, SRLocation)
+
             self.multiworld.regions.append(region)
 
             world_map_exit = Entrance(self.player, region_name, world_map_region)
@@ -61,7 +104,7 @@ class StickRanger(World):
         starter_loc = self.multiworld.get_location(starter_loc_name, self.player)
         starter_loc.place_locked_item(starter_item)
 
-        for level in levels:
+        for level in stages:
             if level.item_name == starter_item_name:
                 continue
             self.multiworld.itempool.append(self.create_item(level.item_name))
@@ -92,6 +135,9 @@ class StickRanger(World):
             "player_name": self.multiworld.get_player_name(self.player),
             "player_id": self.player,
             "race": self.multiworld.is_race,
+            "shuffle_books": self.options.shuffle_books.value,
+            "shuffle_enemies": self.options.shuffle_enemies.value,
+            "shuffle_levelups": self.options.shuffle_levelups.value,
             "gold_multiplier": self.options.gold_multiplier.value,
             "xp_multiplier": self.options.xp_multiplier.value,
             "drop_multiplier": self.options.drop_multiplier.value,
