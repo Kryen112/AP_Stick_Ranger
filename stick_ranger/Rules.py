@@ -45,36 +45,42 @@ def set_region_rules(player, multiworld):
             state.has(_nm, _pl, 1) and _i(state)
         )
 
+
 def reached_castle(player):
-    return lambda state, _pl=player, _T=randint(6, 10), _keys=unlocks_by_region["Grassland"]: (
+    return lambda state, _pl=player, _T=randint(6, 10), _L=randint(11, 21), _keys=unlocks_by_region["Grassland"]: (
         state.has("Unlock Castle", _pl, 1)
         and sum(1 for k in _keys if state.has(k, _pl, 1)) >= _T
+        and state.count("Levelup", _pl) >= _L
     )
 
 def reached_submarine_shrine(player, castle_pred):
-    return lambda state, _pl=player, _T=randint(4, 7), _keys=unlocks_by_region["Sea"], _c=castle_pred: (
+    return lambda state, _pl=player, _T=randint(4, 7), _L=randint(31, 41), _keys=unlocks_by_region["Sea"], _c=castle_pred: (
         _c(state)
         and state.has("Unlock Submarine Shrine", _pl, 1)
         and sum(1 for k in _keys if state.has(k, _pl, 1)) >= _T
+        and state.count("Levelup", _pl) >= _L
     )
 
 def reached_pyramid(player, submarine_shrine_pred):
-    return lambda state, _pl=player, _T=randint(4, 7), _keys=unlocks_by_region["Desert"], _s=submarine_shrine_pred: (
+    return lambda state, _pl=player, _T=randint(4, 7), _L=randint(41, 56), _keys=unlocks_by_region["Desert"], _s=submarine_shrine_pred: (
         _s(state)
         and state.has("Unlock Pyramid", _pl, 1)
         and sum(1 for k in _keys if state.has(k, _pl, 1)) >= _T
+        and state.count("Levelup", _pl) >= _L
     )
 
 def reached_ice_castle(player, pyramid_pred):
-    return lambda state, _pl=player, _T=randint(5, 8), _keys=unlocks_by_region["Ice"], _p=pyramid_pred: (
+    return lambda state, _pl=player, _T=randint(5, 8), _L=randint(61, 71), _keys=unlocks_by_region["Ice"], _p=pyramid_pred: (
         _p(state)
         and state.has("Unlock Ice Castle", _pl, 1)
         and sum(1 for k in _keys if state.has(k, _pl, 1)) >= _T
+        and state.count("Levelup", _pl) >= _L
     )
 
 def reached_hell_castle(player, ice_castle_pred):
-    return lambda state, _pl=player, _T=randint(6, 10), _keys=unlocks_by_region["Hell"], _i=ice_castle_pred: (
+    return lambda state, _pl=player, _T=randint(6, 10), _L=randint(80, 98), _keys=unlocks_by_region["Hell"], _i=ice_castle_pred: (
         _i(state)
         and state.has("Unlock Hell Castle", _pl, 1)
         and sum(1 for k in _keys if state.has(k, _pl, 1)) >= _T
+        and state.count("Levelup", _pl) >= _L
     )
