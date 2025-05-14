@@ -79,13 +79,6 @@ class StickRanger(World):
             enemy_locations = filter_locations(enemies_table, region_name, enemy_filters.get(self.options.shuffle_enemies))
             region.add_locations(enemy_locations, SRLocation)
 
-            if self.options.shuffle_levelups:
-                levelup_locs = {
-                    loc["name"]: loc_id
-                    for loc_id, loc in levelups_table.items()
-                }
-                world_map_region.add_locations(levelup_locs, SRLocation)
-
             self.multiworld.regions.append(region)
 
             world_map_exit = Entrance(self.player, region_name, world_map_region)
@@ -93,6 +86,13 @@ class StickRanger(World):
                 world_map_exit.access_rule = make_unlock_rule(region_name)
             world_map_region.exits.append(world_map_exit)
             world_map_exit.connect(region)
+
+        if self.options.shuffle_levelups:
+            levelup_locs = {
+                loc["name"]: loc_id
+                for loc_id, loc in levelups_table.items()
+            }
+            world_map_region.add_locations(levelup_locs, SRLocation)
 
         self.location_count = len(self.multiworld.get_locations(self.player))
 
@@ -114,16 +114,19 @@ class StickRanger(World):
             starter_location_names.append(OPENING_STREET_BOSS)
         if self.options.shuffle_levelups:
             levelup_count = 98
-            self.multiworld.itempool += levelups[:levelup_count]
+            self.multiworld.itempool += [
+                self.create_item(level.item_name)
+                for level in levelups[:levelup_count]
+            ]
 
         random_loc_name = random.choice(starter_location_names) # keep in mind: level shuffle
         starter_loc = self.multiworld.get_location(random_loc_name, self.player)
         starter_loc.place_locked_item(starter_item)
 
         self.multiworld.itempool += [
-            self.create_item(level.item_name)
-            for level in stages
-            if level.item_name != starter_item_name
+            self.create_item(unlock.item_name)
+            for unlock in stages
+            if unlock.item_name != starter_item_name
         ]
 
     def pre_fill(self):

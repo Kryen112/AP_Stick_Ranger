@@ -111,7 +111,7 @@ stages = [
 ]
 
 levelups = [
-    SRItem(f"Levelup", ItemClassification.progression, 11100 + i)
+    StagesData(11100 + i, "Levelup", ItemClassification.progression, "any")
     for i in range(98)
 ]
 
