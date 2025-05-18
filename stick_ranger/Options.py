@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import Choice, Toggle, DefaultOnToggle, PerGameCommonOptions, DeathLink
+from Options import Choice, DefaultOnToggle, PerGameCommonOptions, DeathLink
 
 class ShuffleBooks(DefaultOnToggle):
     """
@@ -22,14 +22,6 @@ class ShuffleEnemies(Choice):
     option_boss_enemies = 2
     option_both = 3
     option_off = 0
-    default = 0
-
-class ShuffleLevelUps(Toggle):
-    """
-    Controls whether to shuffle level ups into the pool.
-    EXP is gained as normal, but gives a check instead of a level up.
-    """
-    display_name = "Shuffle level ups"
     default = 0
 
 class GoldMultiplier(Choice):
@@ -93,7 +85,6 @@ class Traps(Choice):
 class SROptions(PerGameCommonOptions):
     shuffle_books: ShuffleBooks
     shuffle_enemies: ShuffleEnemies
-    shuffle_levelups: ShuffleLevelUps
     gold_multiplier: GoldMultiplier
     xp_multiplier: XPMultiplier
     drop_multiplier: DropMultiplier

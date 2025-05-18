@@ -110,11 +110,6 @@ stages = [
     StagesData(11089, "Unlock Volcano", ItemClassification.progression, "Hell"),
 ]
 
-levelups = [
-    StagesData(11100 + i, "Levelup", ItemClassification.progression, "any")
-    for i in range(98)
-]
-
 filler = [
     StagesData(12003, "glove", ItemClassification.filler, "any"),
     StagesData(12007, "mach punch", ItemClassification.filler, "any"),
@@ -667,7 +662,6 @@ traps = [
 
 item_list = []
 item_list += stages
-item_list += levelups
 item_list += filler
 item_list += traps
 

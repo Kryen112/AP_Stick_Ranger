@@ -10,12 +10,11 @@
     - [Progression](#progression)
     - [Options](#options)
 3. [Saving & Persistence](#saving--persistence)
-4. [Roadmap](#roadmap)
-5. [Contributing](#contributing)
-6. [License](#license)
-7. [Contact & Support](#contact--support)
-8. [Acknowledgements](#acknowledgements)
-9. [Local Web Server Help](#local-web-server-help)
+4. [Contributing](#contributing)
+5. [License](#license)
+6. [Contact & Support](#contact--support)
+7. [Acknowledgements](#acknowledgements)
+8. [Local Web Server Help](#local-web-server-help)
 
 ---
 
@@ -32,14 +31,15 @@
 
 ### Goal
 
-The goal of the game is to complete the Hell Castle stage
+The goal of the game is to complete the Hell Castle stage.
 
 ### Locations
 
 Checks are send when:
 
 -   You complete a stage
--   You buy a book
+-   You buy a book (when book_shuffle is on)
+-   When an AP item from an enemy is dropped and picked up (when enemy_shuffle is on)
 
 ### Items
 
@@ -47,6 +47,7 @@ You can receive:
 
 -   Stage unlocks
 -   A random item (any weapon/compo)
+-   Traps (if enabled)
 
 ### Progression
 
@@ -60,9 +61,15 @@ Progression is locked into 5 zones:
 
 ### Options
 
+-   Book shuffle
+-   Enemy shuffle
 -   Enemy gold drop value multiplier
 -   XP gain multiplier
 -   Enemy drop multiplier
+-   Book shop hints
+-   Book cost randomizer
+-   Traps
+-   DeathLink
 
 ## Saving & Persistence
 
@@ -70,25 +77,15 @@ Progression is locked into 5 zones:
 -   **Object store**: `savegames`
 -   **Key structure**:
     ```
-    [hostname]:[port]:Stick Ranger:[slotName]
+    Stick Ranger:[slotName]:[seed]
     ```
 -   Auto-save triggers:
     -   Receiving items
     -   Sending checks
 
-## Roadmap
-
--   [x] Initial Release
--   [ ] Additional yaml options
--   [ ] DeathLink
--   [ ] Book shop buy item preview
--   [ ] Send commands/chat via chat window
--   [ ] Traps
--   [ ] Enemy/item randomizer
-
 ## Contributing
 
-Feel free to contribute or mod
+Feel free to contribute or mod.
 
 ## License
 
@@ -96,12 +93,12 @@ This project is licensed under the **[MIT License](LICENSE)**. Feel free to use,
 
 ## Contact & Support
 
-Please contact inside the Archipelago Discord, inside the Stick Ranger post inside future-game-design, or contact Kryen112 on Discord directly
+Please contact inside the Archipelago Discord, inside the Stick Ranger post inside future-game-design, or contact Kryen112 on Discord directly.
 
 ## Acknowledgements
 
 -   Please support ha55ii, the original creator of Stick Ranger, by playing his games on [dan-ball](http://dan-ball.jp), including the original Stick Ranger and other web games.
--   Thanks to Dire Storm from the Dan-Ball Discord for making a Vanilla Translation Mod
--   Thanks to sunsetquesar for teaching me how to run a github.io page
+-   Thanks to Dire Storm from the Dan-Ball Discord for making a Vanilla Translation Mod.
+-   Thanks to sunsetquesar for teaching me how to run a github.io page.
 
 ---

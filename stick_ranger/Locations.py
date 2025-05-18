@@ -539,19 +539,10 @@ enemies_table: Dict[int, LocationDict] = {
    #10539 Map sign spawning
 }
 
-levelups_table = {
-    10600 + i: {
-        "name": f"Levelup {i + 1}",
-        "region": "World Map"
-    }
-    for i in range(98)
-}
-
 location_table: Dict[int, LocationDict] = {}
 location_table.update(stages_table)
 location_table.update(books_table)
 location_table.update(enemies_table)
-location_table.update(levelups_table)
 
 location_name_to_id = {
     value['name']: id

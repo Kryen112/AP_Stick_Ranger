@@ -1,8 +1,8 @@
 import random
 from BaseClasses import Region, Entrance
 from worlds.AutoWorld import World
-from .Items import SRItem, item_table, stages, levelups, filler, traps
-from .Locations import SRLocation, stages_table, books_table, enemies_table, levelups_table, location_name_to_id
+from .Items import SRItem, item_table, stages, filler, traps
+from .Locations import SRLocation, stages_table, books_table, enemies_table, location_name_to_id
 from .Options import SROptions
 from .Regions import regions
 from .Rules import set_rules
@@ -42,6 +42,11 @@ class StickRanger(World):
 
 
     def create_regions(self):
+        if self.options.shuffle_books == 0 and self.options.shuffle_enemies == 0:
+            raise ValueError(
+                "Invalid configuration: at least one of 'shuffle_books' or 'shuffle_enemies' must be enabled."
+            )
+
         menu_region = Region("Menu", self.player, self.multiworld)
         world_map_region = Region("World Map", self.player, self.multiworld)
         self.multiworld.regions += [menu_region, world_map_region]
@@ -65,19 +70,19 @@ class StickRanger(World):
             stage_locs = filter_locations(stages_table, region_name)
             region.add_locations(stage_locs, SRLocation)
 
-            # TODO Make sure either books, enemies or levelups is selected!
             if self.options.shuffle_books == 1:
                 book_locs = filter_locations(books_table, region_name)
                 region.add_locations(book_locs, SRLocation)
 
-            enemy_filters = {
-                ENEMIES_NORMAL: lambda loc: "boss" not in loc["name"].lower(),
-                ENEMIES_BOSS: lambda loc: "boss" in loc["name"].lower(),
-                ENEMIES_ALL: None
-            }
+            if self.options.shuffle_enemies > 0:
+                enemy_filters = {
+                    ENEMIES_NORMAL: lambda loc: "boss" not in loc["name"].lower(),
+                    ENEMIES_BOSS: lambda loc: "boss" in loc["name"].lower(),
+                    ENEMIES_ALL: None
+                }
 
-            enemy_locations = filter_locations(enemies_table, region_name, enemy_filters.get(self.options.shuffle_enemies))
-            region.add_locations(enemy_locations, SRLocation)
+                enemy_locations = filter_locations(enemies_table, region_name, enemy_filters.get(self.options.shuffle_enemies))
+                region.add_locations(enemy_locations, SRLocation)
 
             self.multiworld.regions.append(region)
 
@@ -86,13 +91,6 @@ class StickRanger(World):
                 world_map_exit.access_rule = make_unlock_rule(region_name)
             world_map_region.exits.append(world_map_exit)
             world_map_exit.connect(region)
-
-        if self.options.shuffle_levelups:
-            levelup_locs = {
-                loc["name"]: loc_id
-                for loc_id, loc in levelups_table.items()
-            }
-            world_map_region.add_locations(levelup_locs, SRLocation)
 
         self.location_count = len(self.multiworld.get_locations(self.player))
 
@@ -112,14 +110,8 @@ class StickRanger(World):
             starter_location_names.extend(OPENING_STREET_ENEMIES)
         if shuffle_enemies in (2, 3):
             starter_location_names.append(OPENING_STREET_BOSS)
-        if self.options.shuffle_levelups:
-            levelup_count = 98
-            self.multiworld.itempool += [
-                self.create_item(level.item_name)
-                for level in levelups[:levelup_count]
-            ]
 
-        random_loc_name = random.choice(starter_location_names) # keep in mind: level shuffle
+        random_loc_name = random.choice(starter_location_names)
         starter_loc = self.multiworld.get_location(random_loc_name, self.player)
         starter_loc.place_locked_item(starter_item)
 
@@ -157,7 +149,6 @@ class StickRanger(World):
             "race": self.multiworld.is_race,
             "shuffle_books": self.options.shuffle_books.value,
             "shuffle_enemies": self.options.shuffle_enemies.value,
-            "shuffle_levelups": self.options.shuffle_levelups.value,
             "gold_multiplier": self.options.gold_multiplier.value,
             "xp_multiplier": self.options.xp_multiplier.value,
             "drop_multiplier": self.options.drop_multiplier.value,
