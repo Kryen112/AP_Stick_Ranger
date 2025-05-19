@@ -1,6 +1,7 @@
 import random
 from BaseClasses import Region, Entrance
 from worlds.AutoWorld import World
+from Options import OptionError
 from .Items import SRItem, item_table, stages, filler, traps
 from .Locations import SRLocation, stages_table, books_table, enemies_table, location_name_to_id
 from .Options import SROptions
@@ -43,8 +44,8 @@ class StickRanger(World):
 
     def create_regions(self):
         if self.options.shuffle_books == 0 and self.options.shuffle_enemies == 0:
-            raise ValueError(
-                "Invalid configuration: at least one of 'shuffle_books' or 'shuffle_enemies' must be enabled."
+            raise OptionError(
+                "At least one of 'shuffle_books' or 'shuffle_enemies' must be enabled."
             )
 
         menu_region = Region("Menu", self.player, self.multiworld)
