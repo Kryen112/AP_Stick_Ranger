@@ -1,5 +1,27 @@
 from dataclasses import dataclass
-from Options import Choice, DefaultOnToggle, PerGameCommonOptions, DeathLink
+from Options import Choice, Toggle, DefaultOnToggle, PerGameCommonOptions, DeathLink
+
+class RangerClassRandomizer(Toggle):
+    """
+    When enabled, start with the Class selected in Class Selector, and unlock other Classes via checks.
+    This also starts you off with the Forget Tree, to switch Classes, and Forget is free.
+    """
+    display_name = "Class Randomizer"
+
+class RangerClassSelector(Choice):
+    """
+    Selects the Class you start with when Class Randomizer is enabled.
+    """
+    display_name = "Class Selector"
+    option_boxer = "Boxer"
+    option_gladiator = "Gladiator"
+    option_sniper = "Sniper"
+    option_magician = "Magician"
+    option_priest = "Priest"
+    option_gunner = "Gunner"
+    option_whipper = "Whipper"
+    option_angel = "Angel"
+    default = "random"
 
 class ShuffleBooks(DefaultOnToggle):
     """
@@ -83,6 +105,8 @@ class Traps(Choice):
 
 @dataclass
 class SROptions(PerGameCommonOptions):
+    ranger_class_randomizer: RangerClassRandomizer
+    ranger_class_selected: RangerClassSelector
     shuffle_books: ShuffleBooks
     shuffle_enemies: ShuffleEnemies
     gold_multiplier: GoldMultiplier

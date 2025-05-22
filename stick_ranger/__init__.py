@@ -32,6 +32,17 @@ OPENING_STREET_ENEMIES = [
 ]
 OPENING_STREET_BOSS = "Opening Street: Grey Boss Smiley Walker"
 
+RANGER_CLASSES = [
+    "Boxer",
+    "Gladiator",
+    "Sniper",
+    "Magician",
+    "Priest",
+    "Gunner",
+    "Whipper",
+    "Angel"
+]
+
 class StickRanger(World):
     game = "Stick Ranger"
     worldversion = "0.6.1"
@@ -116,10 +127,19 @@ class StickRanger(World):
         starter_loc = self.multiworld.get_location(random_loc_name, self.player)
         starter_loc.place_locked_item(starter_item)
 
+        if self.options.ranger_class_randomizer:
+            for cls in RANGER_CLASSES:
+                if cls != self.options.ranger_class_selected.value:
+                    self.multiworld.itempool.append(self.create_item(f"Unlock {cls} Class"))
+
         self.multiworld.itempool += [
             self.create_item(unlock.item_name)
             for unlock in stages
             if unlock.item_name != starter_item_name
+            and (
+                not self.options.ranger_class_randomizer
+                or unlock.item_name != "Unlock Forget Tree"
+            )
         ]
 
     def pre_fill(self):
@@ -148,6 +168,8 @@ class StickRanger(World):
             "player_name": self.multiworld.get_player_name(self.player),
             "player_id": self.player,
             "race": self.multiworld.is_race,
+            "ranger_class_randomizer": self.options.ranger_class_randomizer.value,
+            "ranger_class_selected": self.options.ranger_class_selected.value,
             "shuffle_books": self.options.shuffle_books.value,
             "shuffle_enemies": self.options.shuffle_enemies.value,
             "gold_multiplier": self.options.gold_multiplier.value,

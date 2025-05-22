@@ -13,6 +13,11 @@ class TrapItemData(NamedTuple):
     classification: ItemClassification
     weight: int
 
+class RangerClassData(NamedTuple):
+    code: int
+    item_name: str
+    classification: ItemClassification
+
 class SRItem(Item):
     game = "Stick Ranger"
 
@@ -660,15 +665,27 @@ traps = [
     TrapItemData(13004, "Spawn enemies", ItemClassification.trap, 15),
 ]
 
+classes = [
+    RangerClassData(14000, "Unlock Boxer Class", ItemClassification.progression),
+    RangerClassData(14001, "Unlock Gladiator Class", ItemClassification.progression),
+    RangerClassData(14002, "Unlock Sniper Class", ItemClassification.progression),
+    RangerClassData(14003, "Unlock Magician Class", ItemClassification.progression),
+    RangerClassData(14004, "Unlock Priest Class", ItemClassification.progression),
+    RangerClassData(14005, "Unlock Gunner Class", ItemClassification.progression),
+    RangerClassData(14006, "Unlock Whipper Class", ItemClassification.progression),
+    RangerClassData(14007, "Unlock Angel Class", ItemClassification.progression),
+]
+
 item_list = []
 item_list += stages
 item_list += filler
 item_list += traps
+item_list += classes
 
 item_table = {item.item_name: item for item in item_list}
 items_by_id = {item.code: item for item in item_list}
 
 unlocks_by_region: Dict[str, List[str]] = {}
 for name, data in item_table.items():
-    if data.classification is ItemClassification.progression and name.startswith("Unlock "):
+    if data.classification is ItemClassification.progression and name.startswith("Unlock ") and not name.endswith(" Class"):
         unlocks_by_region.setdefault(data.region, []).append(name)
