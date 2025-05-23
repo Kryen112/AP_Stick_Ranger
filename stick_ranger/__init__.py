@@ -1,4 +1,3 @@
-import random
 from BaseClasses import Region, Entrance
 from worlds.AutoWorld import World
 from Options import OptionError
@@ -111,7 +110,8 @@ class StickRanger(World):
         return SRItem(name, item_data.classification, item_data.code, self.player)
 
     def create_items(self):
-        starter_item_name = random.choice(STARTER_UNLOCK_CHOICES)
+        # Make sure at least 1 Opening Street check is an early unlock
+        starter_item_name = self.multiworld.random.choice(STARTER_UNLOCK_CHOICES)
         starter_item = self.create_item(starter_item_name)
 
         starter_location_names = [OPENING_STREET_EXIT]
@@ -123,16 +123,20 @@ class StickRanger(World):
         if shuffle_enemies in (2, 3):
             starter_location_names.append(OPENING_STREET_BOSS)
 
-        random_loc_name = random.choice(starter_location_names)
+        random_loc_name = self.multiworld.random.choice(starter_location_names)
         starter_loc = self.multiworld.get_location(random_loc_name, self.player)
         starter_loc.place_locked_item(starter_item)
+        self.location_count -= 1
 
+        itempool = []
+        # Randomize Ranger Classes
         if self.options.ranger_class_randomizer:
             for cls in RANGER_CLASSES:
                 if cls != self.options.ranger_class_selected.value:
-                    self.multiworld.itempool.append(self.create_item(f"Unlock {cls} Class"))
+                    itempool.append(self.create_item(f"Unlock {cls} Class"))
 
-        self.multiworld.itempool += [
+        # Add Unlock Stages into the pool
+        itempool += [
             self.create_item(unlock.item_name)
             for unlock in stages
             if unlock.item_name != starter_item_name
@@ -142,12 +146,9 @@ class StickRanger(World):
             )
         ]
 
-    def pre_fill(self):
-        missing_locs = len(self.multiworld.get_unfilled_locations()) - len(self.multiworld.itempool)
-        if missing_locs <= 0:
-            return
-
+        # Add Traps
         traps_option = self.options.traps
+        missing_locs = self.location_count - len(itempool)
         traps_percentage = 0
         if traps_option >= 1:
             traps_percentage = traps_option * TRAP_STEP_PERCENT
@@ -155,13 +156,13 @@ class StickRanger(World):
         trap_count = int((traps_percentage / 100) * missing_locs)
         trap_weights = [trap.weight for trap in traps]
         for _ in range(trap_count):
-            trap = random.choices(traps, weights=trap_weights, k=1)[0]
-            self.multiworld.itempool.append(self.create_item(trap.item_name))
+            trap = self.multiworld.random.choices(traps, weights=trap_weights, k=1)[0]
+            itempool.append(self.create_item(trap.item_name))
 
-        filler_count = missing_locs - trap_count
-        self.multiworld.itempool += [
-            self.create_item(random.choice(filler).item_name) for _ in range(filler_count)
-        ]
+        while len(itempool) < self.location_count:
+            itempool.append(self.create_item(self.multiworld.random.choice(filler).item_name))
+
+        self.multiworld.itempool += itempool
 
     def fill_slot_data(self) -> dict:
         return {
@@ -170,6 +171,11 @@ class StickRanger(World):
             "race": self.multiworld.is_race,
             "ranger_class_randomizer": self.options.ranger_class_randomizer.value,
             "ranger_class_selected": self.options.ranger_class_selected.value,
+            "classes_req_for_castle": self.options.classes_req_for_castle.value,
+            "classes_req_for_submarine_shrine": self.options.classes_req_for_submarine_shrine.value,
+            "classes_req_for_pyramid": self.options.classes_req_for_pyramid.value,
+            "classes_req_for_ice_castle": self.options.classes_req_for_ice_castle.value,
+            "classes_req_for_hell_castle": self.options.classes_req_for_hell_castle.value,
             "shuffle_books": self.options.shuffle_books.value,
             "shuffle_enemies": self.options.shuffle_enemies.value,
             "gold_multiplier": self.options.gold_multiplier.value,

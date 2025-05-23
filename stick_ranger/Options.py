@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import Choice, Toggle, DefaultOnToggle, PerGameCommonOptions, DeathLink
+from Options import Choice, Toggle, DefaultOnToggle, PerGameCommonOptions, DeathLink, Range
 
 class RangerClassRandomizer(Toggle):
     """
@@ -22,6 +22,56 @@ class RangerClassSelector(Choice):
     option_whipper = "Whipper"
     option_angel = "Angel"
     default = "random"
+
+class CastleClassUnlocks(Range):
+    """
+    Minimum number of additional Ranger Classes you must unlock before entering the Castle stage.
+    Applies only when Class Randomizer is enabled (your starting class isn't counted here).
+    """
+    display_name = "Classes required for Castle"
+    range_start = 0
+    range_end = 7
+    default = 2
+
+class SubmarineShrineClassUnlocks(Range):
+    """
+    Minimum number of additional Ranger Classes you must unlock before entering the Submarine Shrine stage.
+    Applies only when Class Randomizer is enabled (your starting class isn't counted here).
+    """
+    display_name = "Classes required for Submarine Shrine"
+    range_start = 0
+    range_end = 7
+    default = 3
+
+class PyramidClassUnlocks(Range):
+    """
+    Minimum number of additional Ranger Classes you must unlock before entering the Pyramid stage.
+    Applies only when Class Randomizer is enabled (your starting class isn't counted here).
+    """
+    display_name = "Classes required for Pyramid"
+    range_start = 0
+    range_end = 7
+    default = 4
+
+class IceCastleClassUnlocks(Range):
+    """
+    Minimum number of additional Ranger Classes you must unlock before entering the Ice Castle stage.
+    Applies only when Class Randomizer is enabled (your starting class isn't counted here).
+    """
+    display_name = "Classes required for Ice Castle"
+    range_start = 0
+    range_end = 7
+    default = 5
+
+class HellCastleClassUnlocks(Range):
+    """
+    Minimum number of additional Ranger Classes you must unlock before entering the Hell Castle stage.
+    Applies only when Class Randomizer is enabled (your starting class isn't counted here).
+    """
+    display_name = "Classes required for Hell Castle"
+    range_start = 0
+    range_end = 7
+    default = 6
 
 class ShuffleBooks(DefaultOnToggle):
     """
@@ -107,6 +157,11 @@ class Traps(Choice):
 class SROptions(PerGameCommonOptions):
     ranger_class_randomizer: RangerClassRandomizer
     ranger_class_selected: RangerClassSelector
+    classes_req_for_castle: CastleClassUnlocks
+    classes_req_for_submarine_shrine: SubmarineShrineClassUnlocks
+    classes_req_for_pyramid: PyramidClassUnlocks
+    classes_req_for_ice_castle: IceCastleClassUnlocks
+    classes_req_for_hell_castle: HellCastleClassUnlocks
     shuffle_books: ShuffleBooks
     shuffle_enemies: ShuffleEnemies
     gold_multiplier: GoldMultiplier
