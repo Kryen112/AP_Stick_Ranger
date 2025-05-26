@@ -46,6 +46,7 @@ Checks are send when:
 You can receive:
 
 -   Stage unlocks
+-   Class unlocks (if class_shuffle is enabled)
 -   A random item (any weapon/compo)
 -   Traps (if enabled)
 
@@ -62,6 +63,8 @@ Progression is locked into 5 zones:
 ### Options
 
 -   Book shuffle
+-   Class shuffle
+-   Amount of classes to have before each boss stage
 -   Enemy shuffle
 -   Enemy gold drop value multiplier
 -   XP gain multiplier
@@ -73,8 +76,7 @@ Progression is locked into 5 zones:
 
 ## Saving & Persistence
 
--   **IndexedDB** store name: `StickRangerAP`
--   **Object store**: `savegames`
+-   **Save state is on Archipelago's DataStorage** 
 -   **Key structure**:
     ```
     Stick Ranger:[slotName]:[seed]
@@ -82,6 +84,7 @@ Progression is locked into 5 zones:
 -   Auto-save triggers:
     -   Receiving items
     -   Sending checks
+    -   Scouting Book locations (Opening Book shop)
 
 ## Contributing
 
