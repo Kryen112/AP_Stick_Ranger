@@ -1,6 +1,22 @@
 from dataclasses import dataclass
 from Options import Choice, Toggle, DefaultOnToggle, PerGameCommonOptions, DeathLink, Range
 
+class Goal(Choice):
+    """
+    Pick a Goal to finish the game.
+    Hell Castle is the usual finish of the game, being the last stage to beat.
+    Volcano and Mountaintop are boss rush stages and are therefore regarded has more difficult stages than Hell Castle.
+    """
+    display_name = "Goal"
+    option_hell_castle = 0
+    option_volcano = 1
+    option_mountaintop = 2
+    option_hell_castle_and_volcano = 3
+    option_hell_castle_and_mountaintop = 4
+    option_volcano_and_mountaintop = 5
+    option_all = 6
+    default = 0
+
 class RangerClassRandomizer(Toggle):
     """
     When enabled, start with the Class selected in Class Selector, and unlock other Classes via checks.
@@ -155,6 +171,7 @@ class Traps(Choice):
 
 @dataclass
 class SROptions(PerGameCommonOptions):
+    goal: Goal
     ranger_class_randomizer: RangerClassRandomizer
     ranger_class_selected: RangerClassSelector
     classes_req_for_castle: CastleClassUnlocks

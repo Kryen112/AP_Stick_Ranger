@@ -54,6 +54,8 @@ def set_region_rules(player, multiworld, boss_stage_reqs):
 
     hell_castle_predicate = reached_hell_castle(player, ice_castle_predicate, multiworld.random.randint(6, 10), boss_stage_reqs["Hell Castle"])
     set_rule(multiworld.get_entrance("Hell Castle", player), hell_castle_predicate)
+    set_rule(multiworld.get_entrance("Volcano", player), hell_castle_predicate)
+    set_rule(multiworld.get_entrance("Mountaintop", player), hell_castle_predicate)
 
     for unlock_name in unlocks_by_region["Sea"]:
         entrance_name = multiworld.get_entrance(unlock_name.replace("Unlock ", ""), player)

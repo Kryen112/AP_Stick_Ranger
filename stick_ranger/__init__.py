@@ -42,6 +42,37 @@ RANGER_CLASSES = [
     "Angel"
 ]
 
+GOAL_LOCATIONS = {
+    "Volcano": [
+        "Volcano: Exit",
+        "Volcano: Book",
+        "Volcano: Yellow Boss Box Eel",
+    ],
+    "Mountaintop": [
+        "Mountaintop: Exit",
+        "Mountaintop: Book",
+        "Mountaintop: Red Boss Smiley Eel",
+        "Mountaintop: Blue Boss Fairy Eel",
+        "Mountaintop: Olive Boss Star Eel",
+        "Mountaintop: Green Boss Cap Eel",
+    ],
+    "Hell Castle": [
+        "Hell Castle: Exit",
+        "Hell Castle: Book",
+        "Hell Castle: Hell Castle Boss"
+    ]
+}
+
+GOAL_OPTIONS_MAP = {
+    0: ["Hell Castle"],
+    1: ["Volcano"],
+    2: ["Mountaintop"],
+    3: ["Hell Castle", "Volcano"],
+    4: ["Hell Castle", "Mountaintop"],
+    5: ["Volcano", "Mountaintop"],
+    6: ["Hell Castle", "Volcano", "Mountaintop"],
+}
+
 class StickRanger(World):
     game = "Stick Ranger"
     worldversion = "0.6.1"
@@ -104,6 +135,7 @@ class StickRanger(World):
             world_map_exit.connect(region)
 
         self.location_count = len(self.multiworld.get_locations(self.player))
+        self.set_non_goal_location_rules()
 
     def create_item(self, name: str) -> SRItem:
         item_data = item_table.get(name)
@@ -164,11 +196,35 @@ class StickRanger(World):
 
         self.multiworld.itempool += itempool
 
+    def set_non_goal_location_rules(self):
+        """
+        For locations associated with goals not selected by the player,
+        ensure only non-progression items can be placed.
+        """
+        chosen_goals = GOAL_OPTIONS_MAP[self.options.goal.value]
+        allowed = set()
+        for goal in chosen_goals:
+            allowed.update(GOAL_LOCATIONS[goal])
+        all_goal_locations = set().union(*GOAL_LOCATIONS.values())
+        non_goal_locations = all_goal_locations - allowed
+
+        for loc_name in non_goal_locations:
+            loc = self.multiworld.get_location(loc_name, self.player)
+            if loc:
+                def only_non_progression(item):
+                    """
+                    Return True if the item is not a progression item (advancement).
+                    Used as an item_rule to restrict placement.
+                    """
+                    return not item.advancement
+                loc.item_rule = only_non_progression
+
     def fill_slot_data(self) -> dict:
         return {
             "player_name": self.multiworld.get_player_name(self.player),
             "player_id": self.player,
             "race": self.multiworld.is_race,
+            "goal": self.options.goal.value,
             "ranger_class_randomizer": self.options.ranger_class_randomizer.value,
             "ranger_class_selected": self.options.ranger_class_selected.value,
             "classes_req_for_castle": self.options.classes_req_for_castle.value,

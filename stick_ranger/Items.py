@@ -83,7 +83,7 @@ stages = [
     StagesData(11052, "Unlock Snowfield 2", ItemClassification.progression, "Ice"),
     StagesData(11053, "Unlock Mountain 1", ItemClassification.progression, "Ice"),
     StagesData(11054, "Unlock Mountain 2", ItemClassification.progression, "Ice"),
-    StagesData(11055, "Unlock Mountaintop", ItemClassification.progression, "Ice"),
+    StagesData(11055, "Unlock Mountaintop", ItemClassification.progression, "Boss"),
     StagesData(11056, "Unlock Snowfield 3", ItemClassification.progression, "Ice"),
     StagesData(11057, "Unlock Snowfield 4", ItemClassification.progression, "Ice"),
     StagesData(11058, "Unlock Snowfield 5", ItemClassification.progression, "Ice"),
@@ -117,7 +117,7 @@ stages = [
     StagesData(11086, "Unlock Hell 8", ItemClassification.progression, "Hell"),
     StagesData(11087, "Unlock Hell Gate", ItemClassification.progression, "Hell"),
     StagesData(11088, "Unlock Hell Castle", ItemClassification.progression, "Boss"),
-    StagesData(11089, "Unlock Volcano", ItemClassification.progression, "Hell"),
+    StagesData(11089, "Unlock Volcano", ItemClassification.progression, "Boss"),
 ]
 
 filler = [
