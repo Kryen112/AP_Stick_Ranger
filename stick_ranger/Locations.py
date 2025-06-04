@@ -1,10 +1,10 @@
 from typing import Dict, TypedDict
+
 from BaseClasses import Location
 
 
 class SRLocation(Location):
     game: str = "Stick Ranger"
-
 
 class LocationDict(TypedDict, total=False):
     name: str
@@ -483,9 +483,9 @@ enemies_table: Dict[int, LocationDict] = {
     10483: {"name": "Hell 4: Cyan Triangle Digger", "region": "Hell 4"},
     10484: {"name": "Hell 4: Orange Box Digger", "region": "Hell 4"},
     10485: {"name": "Hell 4: Tan Boss Diamond Tree", "region": "Hell 4"},
-    10486: {"name": "Hell 5: Grey Big Box Stickman", "region": "Hell 5"},
-    10487: {"name": "Hell 5: Grey Big Box Stickman", "region": "Hell 5"},
-    10488: {"name": "Hell 5: Grey Big Box Stickman", "region": "Hell 5"},
+    10486: {"name": "Hell 5: Grey Big Box Stickman 1", "region": "Hell 5"},
+    10487: {"name": "Hell 5: Grey Big Box Stickman 2", "region": "Hell 5"},
+    10488: {"name": "Hell 5: Grey Big Box Stickman 3", "region": "Hell 5"},
     10489: {"name": "Hell 5: Grey Boss Box Stickman", "region": "Hell 5"},
     10490: {"name": "Hell 6: Yellow Triangle Bat", "region": "Hell 6"},
     10491: {"name": "Hell 6: Green Coconut Germ", "region": "Hell 6"},
@@ -544,8 +544,8 @@ location_table.update(stages_table)
 location_table.update(books_table)
 location_table.update(enemies_table)
 
-location_name_to_id = {
-    value['name']: id
+location_name_to_id: Dict[str, int] = {
+    value["name"]: id
     for id, value in location_table.items()
 }
 

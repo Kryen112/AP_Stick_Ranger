@@ -1,5 +1,8 @@
 from dataclasses import dataclass
-from Options import Choice, Toggle, DefaultOnToggle, PerGameCommonOptions, DeathLink, Range
+
+from Options import (Choice, DeathLink, DefaultOnToggle, PerGameCommonOptions,
+                     Range, Toggle)
+
 
 class Goal(Choice):
     """
@@ -42,7 +45,7 @@ class RangerClassSelector(Choice):
 class CastleClassUnlocks(Range):
     """
     Minimum number of additional Ranger Classes you must unlock before entering the Castle stage.
-    Applies only when Class Randomizer is enabled (your starting class isn't counted here).
+    Applies only when Class Randomizer is enabled (your starting class is not counted here).
     """
     display_name = "Classes required for Castle"
     range_start = 0
@@ -52,7 +55,7 @@ class CastleClassUnlocks(Range):
 class SubmarineShrineClassUnlocks(Range):
     """
     Minimum number of additional Ranger Classes you must unlock before entering the Submarine Shrine stage.
-    Applies only when Class Randomizer is enabled (your starting class isn't counted here).
+    Applies only when Class Randomizer is enabled (your starting class is not counted here).
     """
     display_name = "Classes required for Submarine Shrine"
     range_start = 0
@@ -62,7 +65,7 @@ class SubmarineShrineClassUnlocks(Range):
 class PyramidClassUnlocks(Range):
     """
     Minimum number of additional Ranger Classes you must unlock before entering the Pyramid stage.
-    Applies only when Class Randomizer is enabled (your starting class isn't counted here).
+    Applies only when Class Randomizer is enabled (your starting class is not counted here).
     """
     display_name = "Classes required for Pyramid"
     range_start = 0
@@ -72,7 +75,7 @@ class PyramidClassUnlocks(Range):
 class IceCastleClassUnlocks(Range):
     """
     Minimum number of additional Ranger Classes you must unlock before entering the Ice Castle stage.
-    Applies only when Class Randomizer is enabled (your starting class isn't counted here).
+    Applies only when Class Randomizer is enabled (your starting class is not counted here).
     """
     display_name = "Classes required for Ice Castle"
     range_start = 0
@@ -82,7 +85,7 @@ class IceCastleClassUnlocks(Range):
 class HellCastleClassUnlocks(Range):
     """
     Minimum number of additional Ranger Classes you must unlock before entering the Hell Castle stage.
-    Applies only when Class Randomizer is enabled (your starting class isn't counted here).
+    Applies only when Class Randomizer is enabled (your starting class is not counted here).
     """
     display_name = "Classes required for Hell Castle"
     range_start = 0

@@ -1,5 +1,10 @@
+from typing import Any, Dict, List, NamedTuple
+
 from BaseClasses import Item, ItemClassification
-from typing import NamedTuple, Dict, List
+
+
+class SRItem(Item):
+    game: str = "Stick Ranger"
 
 class StagesData(NamedTuple):
     code: int
@@ -23,11 +28,7 @@ class RangerClassData(NamedTuple):
     item_name: str
     classification: ItemClassification
 
-class SRItem(Item):
-    game = "Stick Ranger"
-
-# Stage start ID 11000
-stages = [
+stages: List[StagesData] = [
     # StagesData(11000, "Unlock Town", ItemClassification.useful, "Town"),
     # StagesData(11001, "Unlock Opening Street", ItemClassification.progression, "Grassland"),
     StagesData(11002, "Unlock Grassland 1", ItemClassification.progression, "Grassland"),
@@ -120,7 +121,7 @@ stages = [
     StagesData(11089, "Unlock Volcano", ItemClassification.progression, "Boss"),
 ]
 
-filler = [
+filler: List[FillerData] = [
     FillerData(12003, "glove", ItemClassification.filler),
     FillerData(12007, "mach punch", ItemClassification.filler),
     FillerData(12011, "thunder glove", ItemClassification.filler),
@@ -662,7 +663,7 @@ filler = [
     FillerData(12404, "Poison Spirit", ItemClassification.filler)
 ]
 
-traps = [
+traps: List[TrapItemData] = [
     TrapItemData(13000, "Unequip items", ItemClassification.trap, 50),
     TrapItemData(13001, "-50% gold", ItemClassification.trap, 10),
     TrapItemData(13002, "Kill a Ranger", ItemClassification.trap, 50),
@@ -670,7 +671,7 @@ traps = [
     TrapItemData(13004, "Spawn enemies", ItemClassification.trap, 15),
 ]
 
-classes = [
+classes: List[RangerClassData] = [
     RangerClassData(14000, "Unlock Boxer Class", ItemClassification.progression),
     RangerClassData(14001, "Unlock Gladiator Class", ItemClassification.progression),
     RangerClassData(14002, "Unlock Sniper Class", ItemClassification.progression),
@@ -681,14 +682,14 @@ classes = [
     RangerClassData(14007, "Unlock Angel Class", ItemClassification.progression),
 ]
 
-item_list = []
+item_list: List[Any] = []
 item_list += stages
 item_list += filler
 item_list += traps
 item_list += classes
 
-item_table = {item.item_name: item for item in item_list}
-items_by_id = {item.code: item for item in item_list}
+item_table: Dict[str, Any] = {item.item_name: item for item in item_list}
+items_by_id: Dict[int, Any] = {item.code: item for item in item_list}
 
 unlocks_by_region: Dict[str, List[str]] = {}
 for stage in stages:
