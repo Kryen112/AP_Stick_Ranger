@@ -172,6 +172,10 @@ class Traps(Choice):
     option_all = 4
     default = 0
 
+class RemoveNullCompo(DefaultOnToggle):
+    """When enabled, buying weapons from the shop removes the 'cross' compo from the second compo slot"""
+    display_name = "Remove Null Compo"
+
 @dataclass
 class SROptions(PerGameCommonOptions):
     goal: Goal
@@ -190,4 +194,5 @@ class SROptions(PerGameCommonOptions):
     shop_hints: ShopHints
     randomize_book_costs: BookCostRandomizer
     traps: Traps
+    remove_null_compo: RemoveNullCompo
     death_link: DeathLink
