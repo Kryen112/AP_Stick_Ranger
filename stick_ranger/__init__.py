@@ -142,6 +142,7 @@ class StickRanger(World):
             self.create_item(unlock.item_name)
             for unlock in stages
             if unlock.item_name != starter_item_name
+            if unlock.item_name not in self.excluded_locations
             and (
                 not self.options.ranger_class_randomizer.value
                 or unlock.item_name != "Unlock Forget Tree"
@@ -177,6 +178,16 @@ class StickRanger(World):
             "classes_req_for_pyramid",
             "classes_req_for_ice_castle",
             "classes_req_for_hell_castle",
+            "min_stages_req_for_castle",
+            "max_stages_req_for_castle",
+            "min_stages_req_for_submarine_shrine",
+            "max_stages_req_for_submarine_shrine",
+            "min_stages_req_for_pyramid",
+            "max_stages_req_for_pyramid",
+            "min_stages_req_for_ice_castle",
+            "max_stages_req_for_ice_castle",
+            "min_stages_req_for_hell_castle",
+            "max_stages_req_for_hell_castle",
             "shuffle_books",
             "shuffle_enemies",
             "gold_multiplier",
