@@ -6,7 +6,7 @@ from __future__ import annotations
 from BaseClasses import ItemClassification
 
 from ..constants import GOAL_LOCATIONS, GOAL_OPTIONS_MAP, RANGER_CLASSES, STARTER_UNLOCK_CHOICES
-from ..items import classes, filler, item_table, stages, traps, unlocks_by_region
+from ..items import classes, filler, item_list, item_table, stages, traps, unlocks_by_region
 from ..locations import books_table, enemies_table, location_name_to_id, stages_table
 from ..regions import regions
 from . import StickRangerTestBase
@@ -40,6 +40,17 @@ class TestData(StickRangerTestBase):
     def test_location_ids_are_unique(self) -> None:
         ids = [*stages_table, *books_table, *enemies_table]
         self.assertEqual(len(ids), len(set(ids)), "duplicate location id")
+
+    def test_no_item_name_is_used_twice(self) -> None:
+        """
+        item_table is keyed by name, so a repeated name silently drops every
+        entry but the last -- those items can then never be created or sent.
+        Checking item_table itself cannot catch this: it has already collapsed.
+        """
+        names = [item.item_name for item in item_list]
+        duplicated = {name for name in names if names.count(name) > 1}
+        self.assertEqual(duplicated, set(), "these item names collapse in item_table")
+        self.assertEqual(len(item_list), len(item_table))
 
     def test_item_codes_are_unique_and_positive(self) -> None:
         codes: set[int] = set()
