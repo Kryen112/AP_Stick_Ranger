@@ -421,6 +421,18 @@ class Traps(Choice):
     default = 0
 
 
+class FreeRespec(Toggle):
+    """
+    When enabled, respeccing at the Forget Tree is always free.
+
+    Class Randomizer already makes it free, since it hands you the Forget Tree
+    to swap class with. This makes it free without that option too, instead of
+    costing 1000 gold per spent skill point.
+    """
+
+    display_name = "Free Respec"
+
+
 class RemoveNullCompo(DefaultOnToggle):
     """When enabled, buying weapons from the shop removes the 'cross' compo from the second compo slot"""
 
@@ -460,6 +472,7 @@ class SROptions(PerGameCommonOptions):
     shop_hints: ShopHints
     randomize_book_costs: BookCostRandomizer
     traps: Traps
+    free_respec: FreeRespec
     remove_null_compo: RemoveNullCompo
     death_link: DeathLink
 
@@ -500,6 +513,6 @@ SR_OPTION_GROUPS: list[OptionGroup] = [
     ),
     OptionGroup(
         "Quality of Life",
-        [GoldMultiplier, XPMultiplier, DropMultiplier, RemoveNullCompo],
+        [GoldMultiplier, XPMultiplier, DropMultiplier, RemoveNullCompo, FreeRespec],
     ),
 ]

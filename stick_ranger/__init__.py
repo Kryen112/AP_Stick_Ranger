@@ -338,6 +338,7 @@ class StickRanger(World):
             "randomize_book_costs",
             "shop_hints",
             "traps",
+            "free_respec",
             "remove_null_compo",
             "death_link",
         )
