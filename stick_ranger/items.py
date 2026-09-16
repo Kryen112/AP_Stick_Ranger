@@ -725,6 +725,14 @@ class ProgressiveShopData(NamedTuple):
 # open from the start, so 32 is what it takes to open the rest; a 33rd would be a
 # check that does nothing. Useful rather than progression: the shop stock is not
 # a check, so nothing in logic sits behind these.
+# Towns whose shop holds checks, so their unlock has to be progression then.
+# Town itself is always open and has no unlock item.
+SHOP_TOWN_UNLOCKS: dict[str, str] = {
+    "Village": "Unlock Village",
+    "Resort": "Unlock Resort",
+    "Island": "Unlock Island",
+}
+
 PROGRESSIVE_SHOP = "Progressive Shop"
 PROGRESSIVE_SHOP_TIERS = 32
 
@@ -757,6 +765,6 @@ item_name_groups: dict[str, set[str]] = {
     **{
         f"{region} Unlocks": set(names)
         for region, names in unlocks_by_region.items()
-        if region != "Boss"
+        if region not in ("Boss", "Town")
     },
 }

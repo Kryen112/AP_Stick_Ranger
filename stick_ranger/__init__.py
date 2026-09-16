@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from BaseClasses import CollectionState, Location, LocationProgressType, Region, Tutorial
+from BaseClasses import (
+    CollectionState,
+    ItemClassification,
+    Location,
+    LocationProgressType,
+    Region,
+    Tutorial,
+)
 from Options import OptionError
 from worlds.AutoWorld import WebWorld, World
 
@@ -26,6 +33,7 @@ from .constants import (
 from .items import (
     PROGRESSIVE_SHOP,
     PROGRESSIVE_SHOP_TIERS,
+    SHOP_TOWN_UNLOCKS,
     SRItem,
     filler,
     item_name_groups,
@@ -43,8 +51,9 @@ from .locations import (
     stages_table,
 )
 from .options import SR_OPTION_GROUPS, SROptions
-from .regions import regions
-from .rules import set_region_rules
+from .shop import shop_table
+from .regions import TOWN_REGIONS, regions
+from .rules import set_region_rules, set_shop_rules
 
 WORLD_MAP = "World Map"
 
@@ -122,10 +131,15 @@ class StickRanger(World):
                 getattr(self.options, option_name).value = slot_data[option_name]
 
     def _validate_options(self) -> None:
-        """Raise if neither books nor enemies are shuffled."""
-        if not self.options.shuffle_books and not self.options.shuffle_enemies:
+        """Raise unless something in the seed actually produces checks."""
+        if not (
+            self.options.shuffle_books
+            or self.options.shuffle_enemies
+            or self.options.shop_checks
+        ):
             raise OptionError(
-                "At least one of 'shuffle_books' or 'shuffle_enemies' must be enabled."
+                "At least one of 'shuffle_books', 'shuffle_enemies' or "
+                "'shop_checks' must be enabled."
             )
 
     def _compute_excluded_locations(self) -> set[str]:
@@ -186,7 +200,7 @@ class StickRanger(World):
         self.multiworld.regions += [menu, world_map]
         menu.connect(world_map, WORLD_MAP)
 
-        for region_name in regions:
+        for region_name in [*regions, *(TOWN_REGIONS if self.options.shop_checks else [])]:
             region = Region(region_name, self.player, self.multiworld)
             region.add_locations(self._locations_in(region_name), SRLocation)
             self.multiworld.regions.append(region)
@@ -195,7 +209,9 @@ class StickRanger(World):
             world_map.connect(
                 region,
                 region_name,
-                None if region_name == "Opening Street" else self._unlock_rule(region_name),
+                None
+                if region_name in ("Opening Street", "Town")
+                else self._unlock_rule(region_name),
             )
 
         self._exclude_non_goal_locations()
@@ -219,6 +235,8 @@ class StickRanger(World):
                     enemy_filters[self.options.shuffle_enemies.value],
                 )
             )
+        if self.options.shop_checks:
+            found.update(self._filter(shop_table, region_name))
         return found
 
     @staticmethod
@@ -248,12 +266,28 @@ class StickRanger(World):
             state.can_reach_location(f"{goal}: Exit", self.player) for goal in goal_exits
         )
         set_region_rules(self.player, self.multiworld, self.options)
+        if self.options.shop_checks:
+            set_shop_rules(self.player, self.multiworld, self.options)
 
     # ------------------------------------------------------------------ items
 
     def create_item(self, name: str) -> SRItem:
         item_data = item_table[name]
-        return SRItem(name, item_data.classification, item_data.code, self.player)
+        return SRItem(name, self._classify(name, item_data.classification), item_data.code, self.player)
+
+    def _classify(self, name: str, default: ItemClassification) -> ItemClassification:
+        """
+        Shop checks turn two kinds of useful item into progression.
+
+        Nothing is gated behind a Progressive Shop item or a town unlock until
+        the shop holds checks; once it does, both stand between the player and a
+        location, and fill has to know that or it can strand them.
+        """
+        if not self.options.shop_checks:
+            return default
+        if name == PROGRESSIVE_SHOP or name in SHOP_TOWN_UNLOCKS.values():
+            return ItemClassification.progression
+        return default
 
     def get_filler_item_name(self) -> str:
         return self.random.choice(filler).item_name

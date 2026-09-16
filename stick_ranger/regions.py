@@ -1,4 +1,8 @@
 
+# Towns hold no stage, book or enemy checks, but the shop lives in them, so they
+# are only real regions when Shop Checks is on. Town itself is always reachable.
+TOWN_REGIONS: list[str] = ["Town", "Village", "Resort", "Island"]
+
 regions: list[str] = [
     "Opening Street",
     "Grassland 1",

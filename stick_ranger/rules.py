@@ -22,8 +22,9 @@ from BaseClasses import CollectionState, MultiWorld
 from worlds.generic.Rules import set_rule
 
 from .constants import RANGER_CLASSES
-from .items import unlocks_by_region
+from .items import PROGRESSIVE_SHOP, unlocks_by_region
 from .options import SROptions
+from .shop import shop_table
 
 Predicate = Callable[[CollectionState], bool]
 
@@ -130,3 +131,23 @@ def set_region_rules(player: int, multiworld: MultiWorld, options: SROptions) ->
                     state.has(_nm, _pl) and _gate(state)
                 ),
             )
+
+
+def set_shop_rules(player: int, multiworld: MultiWorld, options: SROptions) -> None:
+    """
+    Gate each shop check on the row it sits in.
+
+    Only meaningful with Progressive Shop on -- otherwise the stock widens as
+    stages are beaten, and reaching the town is the whole requirement. Gold is
+    never a rule: enemies drop it forever, so any price is reachable.
+    """
+    if not options.progressive_shop:
+        return
+    for location_data in shop_table.values():
+        tier = location_data.get("tier", 0)
+        if not tier:
+            continue
+        set_rule(
+            multiworld.get_location(location_data["name"], player),
+            lambda state, _pl=player, _tier=tier: state.has(PROGRESSIVE_SHOP, _pl, _tier),
+        )

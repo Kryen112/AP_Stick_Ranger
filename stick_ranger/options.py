@@ -379,7 +379,13 @@ class DropMultiplier(Choice):
 
 
 class ShopHints(DefaultOnToggle):
-    """When enabled, the Book shop will show you what you are buying and it will send out hints for buyable Books."""
+    """
+    When enabled, the Book shop and the item shop show you what you are buying
+    and send out hints for it.
+
+    With this off, a shop item that is still a check reads "AP Item" and only
+    its price is shown.
+    """
 
     display_name = "Shop Hints"
 
@@ -419,6 +425,18 @@ class Traps(Choice):
     option_50 = 4
     option_100 = 5
     default = 0
+
+
+class ShopChecks(Toggle):
+    """
+    When enabled, buying each item in a shop for the first time sends a check.
+
+    That is 462 checks, one per item the shops stock, wherever you buy it. The
+    shop shows an Archipelago logo until the check has been collected, and the
+    normal item afterwards.
+    """
+
+    display_name = "Shop Checks"
 
 
 class ProgressiveShop(Toggle):
@@ -486,6 +504,7 @@ class SROptions(PerGameCommonOptions):
     traps: Traps
     free_respec: FreeRespec
     progressive_shop: ProgressiveShop
+    shop_checks: ShopChecks
     remove_null_compo: RemoveNullCompo
     death_link: DeathLink
 
@@ -522,7 +541,7 @@ SR_OPTION_GROUPS: list[OptionGroup] = [
     ),
     OptionGroup(
         "Checks",
-        [ShuffleBooks, ShuffleEnemies, ShopHints, BookCostRandomizer, ProgressiveShop],
+        [ShuffleBooks, ShuffleEnemies, ShopChecks, ShopHints, BookCostRandomizer, ProgressiveShop],
     ),
     OptionGroup(
         "Quality of Life",

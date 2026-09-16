@@ -8,6 +8,7 @@ from BaseClasses import ItemClassification
 from ..constants import GOAL_LOCATIONS, GOAL_OPTIONS_MAP, RANGER_CLASSES, STARTER_UNLOCK_CHOICES
 from ..items import classes, filler, item_list, item_table, stages, traps, unlocks_by_region
 from ..locations import books_table, enemies_table, location_name_to_id, stages_table
+from ..shop import shop_table
 from ..regions import regions
 from . import StickRangerTestBase
 
@@ -31,14 +32,14 @@ class TestData(StickRangerTestBase):
 
     def test_location_names_are_unique(self) -> None:
         seen: set[str] = set()
-        for table in (stages_table, books_table, enemies_table):
+        for table in (stages_table, books_table, enemies_table, shop_table):
             for entry in table.values():
                 self.assertNotIn(entry["name"], seen, f"duplicate location: {entry['name']}")
                 seen.add(entry["name"])
         self.assertEqual(seen, set(location_name_to_id))
 
     def test_location_ids_are_unique(self) -> None:
-        ids = [*stages_table, *books_table, *enemies_table]
+        ids = [*stages_table, *books_table, *enemies_table, *shop_table]
         self.assertEqual(len(ids), len(set(ids)), "duplicate location id")
 
     def test_no_item_name_is_used_twice(self) -> None:

@@ -573,10 +573,15 @@ enemies_table: dict[int, LocationDict] = {
     # 10539 Map sign spawning
 }
 
+# Imported late: shop.py imports LocationDict from here, so this cannot sit at
+# the top of the file.
+from .shop import shop_table  # noqa: E402
+
 location_table: dict[int, LocationDict] = {
     **stages_table,
     **books_table,
     **enemies_table,
+    **shop_table,
 }
 
 location_name_to_id: dict[str, int] = {
@@ -591,6 +596,7 @@ location_name_groups: dict[str, set[str]] = {
     "Stage Exits": {location["name"] for location in stages_table.values()},
     "Books": {location["name"] for location in books_table.values()},
     "Enemies": {location["name"] for location in enemies_table.values()},
+    "Shop": {location["name"] for location in shop_table.values()},
     "Boss Enemies": {
         location["name"]
         for location in enemies_table.values()
