@@ -44,7 +44,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ci-requirements.txt
           python ModuleUpdate.py --yes --force
-          python Launcher.py --update_settings   # tests want a host.yaml
+
+      # Some tests want a host.yaml to exist. Launcher re-runs ModuleUpdate on
+      # import, and without --yes it answers a version conflict by prompting,
+      # which is an instant EOFError on a runner. ModuleUpdate installs with
+      # `pip install --upgrade` per requirements file, so a pin like
+      # typing_extensions==4.15.0 does drift -- whether it does depends on the
+      # pip cache, which is why this passed on one runner and failed on another
+      # for the same commit. The step above already installed everything.
+      - name: Create host.yaml
+        working-directory: Archipelago
+        env:
+          SKIP_REQUIREMENTS_UPDATE: "1"
+        run: python Launcher.py --update_settings
 
       - name: Install the world
         run: cp -r world/stick_ranger Archipelago/worlds/stick_ranger
