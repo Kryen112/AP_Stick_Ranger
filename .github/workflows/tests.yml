@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Check out the world
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: world
 
@@ -27,13 +27,13 @@ jobs:
       # standalone mode. Pinned, because a world that passes against one AP
       # release can fail against the next for reasons that are not ours.
       - name: Check out Archipelago
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ArchipelagoMW/Archipelago
           ref: 0.6.7
           path: Archipelago
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -79,8 +79,8 @@ jobs:
     name: flake8
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: pip install flake8
