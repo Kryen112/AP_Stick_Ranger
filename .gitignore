@@ -1,7 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Build output
+stick_ranger.apworld
+Archipelago Mod.zip
+
+# Local dev scratch
 todos.txt
 make_apworld_and_copy_to_AP.bat
 ArchipelagoGenerate.exe - Shortcut.lnk
 ArchipelagoTextClient.lnk
-stick_ranger.apworld
-Archipelago Mod.zip
 Stick Ranger.yaml
+
+# Editors
+.idea/
+.vscode/
