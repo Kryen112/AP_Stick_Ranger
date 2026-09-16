@@ -1,23 +1,56 @@
-from typing import TYPE_CHECKING, Any, Dict, List, Set
+from __future__ import annotations
 
-from BaseClasses import Entrance, Location, LocationProgressType, Region, Tutorial
+from typing import Any, Callable
+
+from BaseClasses import CollectionState, Location, LocationProgressType, Region, Tutorial
 from Options import OptionError
 from worlds.AutoWorld import WebWorld, World
 
-from .Constants import *
-from .Items import SRItem, TrapItemData, filler, item_table, stages, traps
-from .Locations import (LocationDict, SRLocation, books_table, enemies_table,
-                        location_name_to_id, stages_table)
-from .Options import SROptions
-from .Regions import regions
-from .Rules import set_rules
+from .constants import (
+    CLASS_REQ_OPTIONS,
+    ENEMIES_OPTION_ALL,
+    ENEMIES_OPTION_BOSS,
+    ENEMIES_OPTION_NON_BOSS,
+    GOAL_LOCATIONS,
+    GOAL_OPTIONS_MAP,
+    OPENING_STREET_BOOK,
+    OPENING_STREET_BOSS,
+    OPENING_STREET_ENEMIES,
+    OPENING_STREET_EXIT,
+    RANGER_CLASSES,
+    STAGE_SETTINGS,
+    STARTER_UNLOCK_CHOICES,
+    TRAP_STEP_PERCENT,
+)
+from .items import (
+    SRItem,
+    filler,
+    item_name_groups,
+    item_table,
+    stages,
+    traps,
+)
+from .locations import (
+    LocationDict,
+    SRLocation,
+    books_table,
+    enemies_table,
+    location_name_groups,
+    location_name_to_id,
+    stages_table,
+)
+from .options import SR_OPTION_GROUPS, SROptions
+from .regions import regions
+from .rules import set_region_rules
 
-if TYPE_CHECKING:
-    from random import Random
+WORLD_MAP = "World Map"
 
 
 class StickRangerWeb(WebWorld):
-    tutorials: List[Tutorial] = [
+    theme = "grass"
+    bug_report_page = "https://github.com/Kryen112/AP_Stick_Ranger/issues"
+    option_groups = SR_OPTION_GROUPS
+    tutorials = [
         Tutorial(
             "Multiworld Setup Guide",
             "A guide to setting up the Stick Ranger randomizer connected to an Archipelago Multiworld.",
@@ -35,44 +68,46 @@ class StickRanger(World):
     Assemble a team of rangers, customize their classes, and battle through a variety of stages filled with enemies.
     """
 
-    game: str = "Stick Ranger"
+    game = "Stick Ranger"
     options_dataclass = SROptions
     options: SROptions
-    location_name_to_id: Dict[str, int] = location_name_to_id
-    item_name_to_id: Dict[str, int] = {
-        name: data.code for name, data in item_table.items()
-    }
-    web: StickRangerWeb = StickRangerWeb()
+    web = StickRangerWeb()
+
+    location_name_to_id = location_name_to_id
+    item_name_to_id = {name: data.code for name, data in item_table.items()}
+    item_name_groups = item_name_groups
+    location_name_groups = location_name_groups
+
+    excluded_locations: set[str]
+    location_count: int
+
+    # ------------------------------------------------------------------ setup
+
+    def generate_early(self) -> None:
+        self._validate_options()
+        self.excluded_locations = self._compute_excluded_locations()
+        self._resolve_class_requirements()
+        self._roll_stage_requirements()
 
     def _validate_options(self) -> None:
         """Raise if neither books nor enemies are shuffled."""
-        if (
-            self.options.shuffle_books.value == 0
-            and self.options.shuffle_enemies.value == 0
-        ):
+        if not self.options.shuffle_books and not self.options.shuffle_enemies:
             raise OptionError(
                 "At least one of 'shuffle_books' or 'shuffle_enemies' must be enabled."
             )
 
-    def _compute_excluded_locations(self) -> Set[str]:
+    def _compute_excluded_locations(self) -> set[str]:
         """
-        Compute which goal-locations should be excluded based on the currently selected goal option.
-        """
-        # 1) Find which sub‐goals were chosen
-        chosen_goals: List[str] = GOAL_OPTIONS_MAP[self.options.goal.value]
+        Locations belonging to a boss stage this seed's goal does not use.
 
-        # 2) Build the set of all allowed locations
-        allowed: Set[str] = set()
-        for goal in chosen_goals:
+        Every boss stage stays playable whatever the goal is -- this only keeps
+        progression out of the ones you were never asked to finish.
+        """
+        allowed: set[str] = set()
+        for goal in GOAL_OPTIONS_MAP[self.options.goal.value]:
             allowed.update(GOAL_LOCATIONS[goal])
-
-        # 3) Compute all goal locations and subtract the allowed ones
-        all_goal_locations: Set[str] = set().union(*GOAL_LOCATIONS.values())
-        non_goal_locations: Set[str] = all_goal_locations - allowed
-
-        # 4) Only exclude those that actually exist in this world
-        existing: Set[str] = set(self.location_name_to_id.keys())
-        return non_goal_locations & existing
+        every_goal_location: set[str] = set().union(*GOAL_LOCATIONS.values())
+        return every_goal_location - allowed
 
     def _resolve_class_requirements(self) -> None:
         """
@@ -92,188 +127,174 @@ class StickRanger(World):
                 getattr(self.options, option_name).value = 0
             return
 
-        required: int = 0
+        required = 0
         for option_name in CLASS_REQ_OPTIONS:
             option = getattr(self.options, option_name)
             required = max(required, option.value)
             option.value = required
 
-    def _generate_randomness(self) -> None:
-        """Clamp min/max and roll actual required stages per goal."""
-        rng: Random = self.multiworld.random
-        for _, min_attr, max_attr, req_attr in STAGE_SETTINGS:
-            low: int = min(
-                getattr(self.options, min_attr).value,
-                getattr(self.options, max_attr).value,
+    def _roll_stage_requirements(self) -> None:
+        """Order each boss gate's min/max, then roll the count this seed uses."""
+        for _, min_attr, max_attr, required_attr in STAGE_SETTINGS:
+            minimum = getattr(self.options, min_attr)
+            maximum = getattr(self.options, max_attr)
+            minimum.value, maximum.value = (
+                min(minimum.value, maximum.value),
+                max(minimum.value, maximum.value),
             )
-            high: int = max(
-                getattr(self.options, min_attr).value,
-                getattr(self.options, max_attr).value,
+            getattr(self.options, required_attr).value = self.random.randint(
+                minimum.value, maximum.value
             )
-            opt_min = getattr(self.options, min_attr)
-            opt_max = getattr(self.options, max_attr)
-            opt_min.value = low
-            opt_max.value = high
-            getattr(self.options, req_attr).value = rng.randint(low, high)
 
-    def generate_early(self) -> None:
-        self._validate_options()
-        self.excluded_locations: Set[str] = self._compute_excluded_locations()
-        self._resolve_class_requirements()
-        self._generate_randomness()
+    # ---------------------------------------------------------------- regions
 
     def create_regions(self) -> None:
-        menu_region: Region = Region("Menu", self.player, self.multiworld)
-        world_map_region: Region = Region("World Map", self.player, self.multiworld)
-        self.multiworld.regions += [menu_region, world_map_region]
-        menu_to_world_map_exit: Entrance = Entrance(
-            self.player, "World Map", menu_region
-        )
-        menu_region.exits.append(menu_to_world_map_exit)
-        menu_to_world_map_exit.connect(world_map_region)
-
-        def filter_locations(
-            table: Dict[int, LocationDict], region: str, filter_func=None
-        ) -> Dict[str, int]:
-            return {
-                loc["name"]: loc_id
-                for loc_id, loc in table.items()
-                if loc["region"] == region
-                and (filter_func(loc) if filter_func else True)
-            }
-
-        def make_unlock_rule(region_name: str) -> bool:
-            return lambda state: state.has(f"Unlock {region_name}", self.player)
+        menu = Region("Menu", self.player, self.multiworld)
+        world_map = Region(WORLD_MAP, self.player, self.multiworld)
+        self.multiworld.regions += [menu, world_map]
+        menu.connect(world_map, WORLD_MAP)
 
         for region_name in regions:
-            region: Region = Region(region_name, self.player, self.multiworld)
-
-            stage_locs: Dict[str, int] = filter_locations(stages_table, region_name)
-            region.add_locations(stage_locs, SRLocation)
-
-            if self.options.shuffle_books.value == 1:
-                book_locs: Dict[str, int] = filter_locations(books_table, region_name)
-                region.add_locations(book_locs, SRLocation)
-
-            if self.options.shuffle_enemies.value > 0:
-                enemy_filters: Dict[int, Any] = {
-                    ENEMIES_OPTION_NON_BOSS: lambda loc: "boss"
-                    not in loc["name"].lower(),
-                    ENEMIES_OPTION_BOSS: lambda loc: "boss" in loc["name"].lower(),
-                    ENEMIES_OPTION_ALL: None,
-                }
-
-                enemy_locations: Dict[str, int] = filter_locations(
-                    enemies_table,
-                    region_name,
-                    enemy_filters.get(self.options.shuffle_enemies.value),
-                )
-                region.add_locations(enemy_locations, SRLocation)
-
+            region = Region(region_name, self.player, self.multiworld)
+            region.add_locations(self._locations_in(region_name), SRLocation)
             self.multiworld.regions.append(region)
-
-            world_map_exit: Entrance = Entrance(
-                self.player, region_name, world_map_region
+            # rules.py replaces most of these; Opening Street is free, and the
+            # pre-Castle stages never need more than their own unlock.
+            world_map.connect(
+                region,
+                region_name,
+                None if region_name == "Opening Street" else self._unlock_rule(region_name),
             )
-            if region_name != "Opening Street":
-                world_map_exit.access_rule = make_unlock_rule(region_name)
-            world_map_region.exits.append(world_map_exit)
-            world_map_exit.connect(region)
 
         self._exclude_non_goal_locations()
-        self.location_count: int = len(self.multiworld.get_locations(self.player))
+        self.location_count = len(self.multiworld.get_locations(self.player))
+
+    def _locations_in(self, region_name: str) -> dict[str, int]:
+        """Every location this seed's options put in one stage."""
+        found = self._filter(stages_table, region_name)
+        if self.options.shuffle_books:
+            found.update(self._filter(books_table, region_name))
+        if self.options.shuffle_enemies:
+            enemy_filters: dict[int, Callable[[LocationDict], bool] | None] = {
+                ENEMIES_OPTION_NON_BOSS: lambda loc: "boss" not in loc["name"].lower(),
+                ENEMIES_OPTION_BOSS: lambda loc: "boss" in loc["name"].lower(),
+                ENEMIES_OPTION_ALL: None,
+            }
+            found.update(
+                self._filter(
+                    enemies_table,
+                    region_name,
+                    enemy_filters[self.options.shuffle_enemies.value],
+                )
+            )
+        return found
+
+    @staticmethod
+    def _filter(
+        table: dict[int, LocationDict],
+        region_name: str,
+        keep: Callable[[LocationDict], bool] | None = None,
+    ) -> dict[str, int]:
+        return {
+            location["name"]: location_id
+            for location_id, location in table.items()
+            if location["region"] == region_name and (keep is None or keep(location))
+        }
+
+    def _unlock_rule(self, region_name: str) -> Callable[[CollectionState], bool]:
+        return lambda state: state.has(f"Unlock {region_name}", self.player)
 
     def _exclude_non_goal_locations(self) -> None:
-        """
-        Keep progression out of boss stages this seed's goal does not use.
+        """Keep progression out of boss stages this seed's goal does not use."""
+        for location in self.multiworld.get_locations(self.player):
+            if location.name in self.excluded_locations:
+                location.progress_type = LocationProgressType.EXCLUDED
 
-        Volcano, Mountaintop and Hell Castle all stay playable whatever the goal
-        is, but a goal you were never asked to finish should not be the thing
-        standing between you and someone else's progression item.
-        """
-        own_locations: Set[str] = {
-            location.name for location in self.multiworld.get_locations(self.player)
-        }
-        for location_name in self.excluded_locations & own_locations:
-            location: Location = self.multiworld.get_location(location_name, self.player)
-            location.progress_type = LocationProgressType.EXCLUDED
+    def set_rules(self) -> None:
+        goal_exits = GOAL_OPTIONS_MAP[self.options.goal.value]
+        self.multiworld.completion_condition[self.player] = lambda state: all(
+            state.can_reach_location(f"{goal}: Exit", self.player) for goal in goal_exits
+        )
+        set_region_rules(self.player, self.multiworld, self.options)
+
+    # ------------------------------------------------------------------ items
 
     def create_item(self, name: str) -> SRItem:
-        item_data: Any | None = item_table.get(name)
+        item_data = item_table[name]
         return SRItem(name, item_data.classification, item_data.code, self.player)
 
+    def get_filler_item_name(self) -> str:
+        return self.random.choice(filler).item_name
+
     def create_items(self) -> None:
-        # Make sure at least 1 Opening Street check is an early unlock
-        starter_item_name: str = self.multiworld.random.choice(STARTER_UNLOCK_CHOICES)
-        starter_item: SRItem = self.create_item(starter_item_name)
+        self._place_starter_unlock()
 
-        starter_location_names: List[str] = [OPENING_STREET_EXIT]
-        if self.options.shuffle_books.value == 1:
-            starter_location_names.append(OPENING_STREET_BOOK)
-        shuffle_enemies: int = self.options.shuffle_enemies.value
-        if shuffle_enemies in (1, 3):
-            starter_location_names.extend(OPENING_STREET_ENEMIES)
-        if shuffle_enemies in (2, 3):
-            starter_location_names.append(OPENING_STREET_BOSS)
+        itempool: list[SRItem] = []
 
-        random_loc_name: str = self.multiworld.random.choice(starter_location_names)
-        starter_loc: Location = self.multiworld.get_location(
-            random_loc_name, self.player
-        )
-        starter_loc.place_locked_item(starter_item)
-        self.location_count -= 1
+        if self.options.ranger_class_randomizer:
+            itempool.extend(
+                self.create_item(f"Unlock {ranger_class} Class")
+                for ranger_class in RANGER_CLASSES
+                if ranger_class != self.options.ranger_class_selected.value
+            )
 
-        itempool: List[SRItem] = []
-        # Add Ranger Classes
-        if self.options.ranger_class_randomizer.value:
-            for cls in RANGER_CLASSES:
-                if cls != self.options.ranger_class_selected.value:
-                    itempool.append(self.create_item(f"Unlock {cls} Class"))
-
-        # Add Unlock Stages into the pool
         itempool.extend(
             self.create_item(unlock.item_name)
             for unlock in stages
-            if unlock.item_name != starter_item_name
-            and (
-                not self.options.ranger_class_randomizer.value
-                or unlock.item_name != "Unlock Forget Tree"
+            if unlock.item_name != self.starter_item_name
+            # Class Randomizer starts you at the Forget Tree so you can swap
+            # classes, so its unlock would be a dud item.
+            and not (
+                self.options.ranger_class_randomizer
+                and unlock.item_name == "Unlock Forget Tree"
             )
         )
 
-        # Add Traps
-        traps_option: int = self.options.traps.value
-        missing_locs: int = self.location_count - len(itempool)
-        traps_percentage: int = 0
-        if traps_option >= 1:
-            traps_percentage = traps_option * TRAP_STEP_PERCENT
-
-        trap_count: int = int((traps_percentage / 100) * missing_locs)
-        trap_weights: List[int] = [trap.weight for trap in traps]
-        for _ in range(trap_count):
-            trap: TrapItemData = self.multiworld.random.choices(
-                traps, weights=trap_weights, k=1
-            )[0]
-            itempool.append(self.create_item(trap.item_name))
-
-        # Add Filler
+        itempool.extend(self._create_traps(self.location_count - len(itempool)))
         while len(itempool) < self.location_count:
-            itempool.append(
-                self.create_item(self.multiworld.random.choice(filler).item_name)
-            )
+            itempool.append(self.create_item(self.get_filler_item_name()))
 
         self.multiworld.itempool += itempool
 
-    def fill_slot_data(self) -> Dict[str, Any]:
-        slot_data: Dict[str, Any] = self.options.as_dict(
+    def _place_starter_unlock(self) -> None:
+        """
+        Lock an early stage unlock onto an Opening Street check.
+
+        Opening Street is the only stage you can play with nothing, so without
+        this a seed can open with no reachable progression at all.
+        """
+        self.starter_item_name: str = self.random.choice(STARTER_UNLOCK_CHOICES)
+
+        candidates = [OPENING_STREET_EXIT]
+        if self.options.shuffle_books:
+            candidates.append(OPENING_STREET_BOOK)
+        if self.options.shuffle_enemies.value in (ENEMIES_OPTION_NON_BOSS, ENEMIES_OPTION_ALL):
+            candidates.extend(OPENING_STREET_ENEMIES)
+        if self.options.shuffle_enemies.value in (ENEMIES_OPTION_BOSS, ENEMIES_OPTION_ALL):
+            candidates.append(OPENING_STREET_BOSS)
+
+        location: Location = self.get_location(self.random.choice(candidates))
+        location.place_locked_item(self.create_item(self.starter_item_name))
+        self.location_count -= 1
+
+    def _create_traps(self, open_locations: int) -> list[SRItem]:
+        if not self.options.traps:
+            return []
+        share = self.options.traps.value * TRAP_STEP_PERCENT / 100
+        weights = [trap.weight for trap in traps]
+        return [
+            self.create_item(self.random.choices(traps, weights=weights, k=1)[0].item_name)
+            for _ in range(int(share * open_locations))
+        ]
+
+    # -------------------------------------------------------------- slot data
+
+    def fill_slot_data(self) -> dict[str, Any]:
+        slot_data = self.options.as_dict(
             "goal",
             "ranger_class_randomizer",
             "ranger_class_selected",
-            "classes_req_for_castle",
-            "classes_req_for_submarine_shrine",
-            "classes_req_for_pyramid",
-            "classes_req_for_ice_castle",
-            "classes_req_for_hell_castle",
+            *CLASS_REQ_OPTIONS,
             "stages_req_for_castle",
             "stages_req_for_submarine_shrine",
             "stages_req_for_pyramid",
@@ -290,12 +311,6 @@ class StickRanger(World):
             "remove_null_compo",
             "death_link",
         )
-        slot_data.update(
-            {
-                "player_name": self.multiworld.get_player_name(self.player),
-                "player_id": self.player,
-            }
-        )
+        slot_data["player_name"] = self.player_name
+        slot_data["player_id"] = self.player
         return slot_data
-
-    set_rules = set_rules

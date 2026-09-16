@@ -1,4 +1,6 @@
-from typing import Any, Dict, List, NamedTuple
+from __future__ import annotations
+
+from typing import NamedTuple
 
 from BaseClasses import Item, ItemClassification
 
@@ -33,7 +35,7 @@ class RangerClassData(NamedTuple):
     classification: ItemClassification
 
 
-stages: List[StagesData] = [
+stages: list[StagesData] = [
     # StagesData(11000, "Unlock Town", ItemClassification.useful, "Town"),
     # StagesData(11001, "Unlock Opening Street", ItemClassification.progression, "Grassland"),
     StagesData(
@@ -150,7 +152,7 @@ stages: List[StagesData] = [
     StagesData(11089, "Unlock Volcano", ItemClassification.progression, "Boss"),
 ]
 
-filler: List[FillerData] = [
+filler: list[FillerData] = [
     FillerData(12003, "glove", ItemClassification.filler),
     FillerData(12007, "mach punch", ItemClassification.filler),
     FillerData(12011, "thunder glove", ItemClassification.filler),
@@ -692,7 +694,7 @@ filler: List[FillerData] = [
     FillerData(12404, "Poison Spirit", ItemClassification.filler),
 ]
 
-traps: List[TrapItemData] = [
+traps: list[TrapItemData] = [
     TrapItemData(13000, "Unequip items", ItemClassification.trap, 50),
     TrapItemData(13001, "-50% gold", ItemClassification.trap, 10),
     TrapItemData(13002, "Kill a Ranger", ItemClassification.trap, 50),
@@ -700,7 +702,7 @@ traps: List[TrapItemData] = [
     TrapItemData(13004, "Spawn enemies", ItemClassification.trap, 15),
 ]
 
-classes: List[RangerClassData] = [
+classes: list[RangerClassData] = [
     RangerClassData(14000, "Unlock Boxer Class", ItemClassification.progression),
     RangerClassData(14001, "Unlock Gladiator Class", ItemClassification.progression),
     RangerClassData(14002, "Unlock Sniper Class", ItemClassification.progression),
@@ -711,16 +713,30 @@ classes: List[RangerClassData] = [
     RangerClassData(14007, "Unlock Angel Class", ItemClassification.progression),
 ]
 
-item_list: List[Any] = []
-item_list += stages
-item_list += filler
-item_list += traps
-item_list += classes
+ItemData = StagesData | FillerData | TrapItemData | RangerClassData
 
-item_table: Dict[str, Any] = {item.item_name: item for item in item_list}
-items_by_id: Dict[int, Any] = {item.code: item for item in item_list}
+item_list: list[ItemData] = [*stages, *filler, *traps, *classes]
 
-unlocks_by_region: Dict[str, List[str]] = {}
+item_table: dict[str, ItemData] = {item.item_name: item for item in item_list}
+items_by_id: dict[int, ItemData] = {item.code: item for item in item_list}
+
+# Progression stage unlocks per region. The length of each list is the ceiling of
+# the matching "stages required for <boss>" option, and the client counts the
+# same stages -- see LOGIC_REGION_STAGES in game.js.
+unlocks_by_region: dict[str, list[str]] = {}
 for stage in stages:
     if stage.classification is ItemClassification.progression:
         unlocks_by_region.setdefault(stage.region, []).append(stage.item_name)
+
+item_name_groups: dict[str, set[str]] = {
+    "Stage Unlocks": {stage.item_name for stage in stages},
+    "Boss Stage Unlocks": {stage.item_name for stage in stages if stage.region == "Boss"},
+    "Town Unlocks": {stage.item_name for stage in stages if stage.region == "Town"},
+    "Ranger Classes": {ranger_class.item_name for ranger_class in classes},
+    "Traps": {trap.item_name for trap in traps},
+    **{
+        f"{region} Unlocks": set(names)
+        for region, names in unlocks_by_region.items()
+        if region != "Boss"
+    },
+}

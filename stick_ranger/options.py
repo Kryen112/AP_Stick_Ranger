@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from Options import (
     Choice,
     DeathLink,
     DefaultOnToggle,
+    OptionGroup,
     PerGameCommonOptions,
     Range,
     Toggle,
@@ -43,6 +46,9 @@ class RangerClassSelector(Choice):
     Selects the Class you start with when Class Randomizer is enabled.
     """
 
+    # Unusually for a Choice these options are strings, not ints: the value goes
+    # straight into slot_data and the web client matches it against its class
+    # name table. from_any resolves the "random" default to a real class.
     display_name = "Class Selector"
     option_boxer = "Boxer"
     option_gladiator = "Gladiator"
@@ -276,7 +282,8 @@ class StagesReqForIceCastle(Range):
 class HellCastleMinimumStagesUnlocks(Range):
     """
     Minimum number of pre-Hell Castle stages you must unlock before entering the Hell Castle stage.
-    Pre-Hell Castle stages are: Snowfield 9, Beach 4, Forest 3-6, !!!, Hell 1-8, Inferno 1-3, Blood Lake, Cavern 7&8 and Hell Gate.
+    Pre-Hell Castle stages are: Snowfield 9, Beach 4, Forest 3-6, !!!, Hell 1-8,
+    Inferno 1-3, Blood Lake, Cavern 7&8 and Hell Gate.
     """
 
     display_name = "Minimum number of required pre-Hell Castle stages"
@@ -288,7 +295,8 @@ class HellCastleMinimumStagesUnlocks(Range):
 class HellCastleMaximumStagesUnlocks(Range):
     """
     Maximum number of pre-Hell Castle stages you must unlock before entering the Hell Castle stage.
-    Pre-Hell Castle stages are: Snowfield 9, Beach 4, Forest 3-6, !!!, Hell 1-8, Inferno 1-3, Blood Lake, Cavern 7&8 and Hell Gate.
+    Pre-Hell Castle stages are: Snowfield 9, Beach 4, Forest 3-6, !!!, Hell 1-8,
+    Inferno 1-3, Blood Lake, Cavern 7&8 and Hell Gate.
     """
 
     display_name = "Maximum number of required pre-Hell Castle stages"
@@ -447,3 +455,44 @@ class SROptions(PerGameCommonOptions):
     traps: Traps
     remove_null_compo: RemoveNullCompo
     death_link: DeathLink
+
+
+# Layout for the WebHost player-options page. The hidden StagesReqFor* options
+# are rolled during generation and deliberately left out.
+SR_OPTION_GROUPS: list[OptionGroup] = [
+    OptionGroup(
+        "Ranger Classes",
+        [
+            RangerClassRandomizer,
+            RangerClassSelector,
+            CastleClassUnlocks,
+            SubmarineShrineClassUnlocks,
+            PyramidClassUnlocks,
+            IceCastleClassUnlocks,
+            HellCastleClassUnlocks,
+        ],
+    ),
+    OptionGroup(
+        "Boss Stage Requirements",
+        [
+            CastleMinimumStagesUnlocks,
+            CastleMaximumStagesUnlocks,
+            SubmarineShrineMinimumStagesUnlocks,
+            SubmarineShrineMaximumStagesUnlocks,
+            PyramidMinimumStagesUnlocks,
+            PyramidMaximumStagesUnlocks,
+            IceCastleMinimumStagesUnlocks,
+            IceCastleMaximumStagesUnlocks,
+            HellCastleMinimumStagesUnlocks,
+            HellCastleMaximumStagesUnlocks,
+        ],
+    ),
+    OptionGroup(
+        "Checks",
+        [ShuffleBooks, ShuffleEnemies, ShopHints, BookCostRandomizer],
+    ),
+    OptionGroup(
+        "Quality of Life",
+        [GoldMultiplier, XPMultiplier, DropMultiplier, RemoveNullCompo],
+    ),
+]

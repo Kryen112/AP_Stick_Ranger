@@ -1,4 +1,6 @@
-from typing import Dict, TypedDict
+from __future__ import annotations
+
+from typing import TypedDict
 
 from BaseClasses import Location
 
@@ -12,7 +14,7 @@ class LocationDict(TypedDict, total=False):
     region: str
 
 
-stages_table: Dict[int, LocationDict] = {
+stages_table: dict[int, LocationDict] = {
     # 10000: {"name": "Town: Exit", "region": "Town"},
     10001: {"name": "Opening Street: Exit", "region": "Opening Street"},
     10002: {"name": "Grassland 1: Exit", "region": "Grassland 1"},
@@ -105,7 +107,7 @@ stages_table: Dict[int, LocationDict] = {
     10089: {"name": "Volcano: Exit", "region": "Volcano"},
 }
 
-books_table: Dict[int, LocationDict] = {
+books_table: dict[int, LocationDict] = {
     # 10100: {"name": "Town: Book", "region": "Town"},
     10101: {"name": "Opening Street: Book", "region": "Opening Street"},
     10102: {"name": "Grassland 1: Book", "region": "Grassland 1"},
@@ -198,7 +200,7 @@ books_table: Dict[int, LocationDict] = {
     10189: {"name": "Volcano: Book", "region": "Volcano"},
 }
 
-enemies_table: Dict[int, LocationDict] = {
+enemies_table: dict[int, LocationDict] = {
     10200: {"name": "Opening Street: Green Smiley Walker", "region": "Opening Street"},
     10201: {"name": "Opening Street: Cyan Smiley Walker", "region": "Opening Street"},
     10202: {"name": "Opening Street: Red Smiley Walker", "region": "Opening Street"},
@@ -571,15 +573,30 @@ enemies_table: Dict[int, LocationDict] = {
     # 10539 Map sign spawning
 }
 
-location_table: Dict[int, LocationDict] = {}
-location_table.update(stages_table)
-location_table.update(books_table)
-location_table.update(enemies_table)
-
-location_name_to_id: Dict[str, int] = {
-    value["name"]: id for id, value in location_table.items()
+location_table: dict[int, LocationDict] = {
+    **stages_table,
+    **books_table,
+    **enemies_table,
 }
 
-lookup_id_to_name: Dict[int, str] = {
-    data: item_name for item_name, data in location_name_to_id.items() if data
+location_name_to_id: dict[str, int] = {
+    location["name"]: location_id for location_id, location in location_table.items()
 }
+
+lookup_id_to_name: dict[int, str] = {
+    location_id: name for name, location_id in location_name_to_id.items()
+}
+
+location_name_groups: dict[str, set[str]] = {
+    "Stage Exits": {location["name"] for location in stages_table.values()},
+    "Books": {location["name"] for location in books_table.values()},
+    "Enemies": {location["name"] for location in enemies_table.values()},
+    "Boss Enemies": {
+        location["name"]
+        for location in enemies_table.values()
+        if "boss" in location["name"].lower()
+    },
+}
+# One group per stage, so a yaml can exclude or prioritise a whole stage by name.
+for location in location_table.values():
+    location_name_groups.setdefault(location["region"], set()).add(location["name"])

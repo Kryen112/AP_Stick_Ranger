@@ -1,6 +1,5 @@
-from typing import List
 
-regions: List[str] = [
+regions: list[str] = [
     "Opening Street",
     "Grassland 1",
     "Grassland 2",

@@ -1,6 +1,7 @@
-from typing import Dict, List, Tuple
+from __future__ import annotations
 
-STAGE_SETTINGS: List[Tuple[str, str, str, str]] = [
+
+STAGE_SETTINGS: list[tuple[str, str, str, str]] = [
     (
         "castle",
         "min_stages_req_for_castle",
@@ -37,7 +38,7 @@ STAGE_SETTINGS: List[Tuple[str, str, str, str]] = [
 # never asks for fewer classes than an earlier one, and zeroes them all when
 # Class Randomizer is off -- fill_slot_data then ships the resolved values, so
 # the in-game logic display gates on the same numbers the rules do.
-CLASS_REQ_OPTIONS: List[str] = [
+CLASS_REQ_OPTIONS: list[str] = [
     "classes_req_for_castle",
     "classes_req_for_submarine_shrine",
     "classes_req_for_pyramid",
@@ -51,7 +52,7 @@ ENEMIES_OPTION_ALL: int = 3
 
 TRAP_STEP_PERCENT: int = 25
 
-STARTER_UNLOCK_CHOICES: List[str] = [
+STARTER_UNLOCK_CHOICES: list[str] = [
     "Unlock Grassland 1",
     "Unlock Grassland 2",
     "Unlock Grassland 3",
@@ -61,7 +62,7 @@ STARTER_UNLOCK_CHOICES: List[str] = [
 
 OPENING_STREET_EXIT: str = "Opening Street: Exit"
 OPENING_STREET_BOOK: str = "Opening Street: Book"
-OPENING_STREET_ENEMIES: List[str] = [
+OPENING_STREET_ENEMIES: list[str] = [
     "Opening Street: Green Smiley Walker",
     "Opening Street: Cyan Smiley Walker",
     "Opening Street: Red Smiley Walker",
@@ -69,7 +70,7 @@ OPENING_STREET_ENEMIES: List[str] = [
 ]
 OPENING_STREET_BOSS: str = "Opening Street: Grey Boss Smiley Walker"
 
-RANGER_CLASSES: List[str] = [
+RANGER_CLASSES: list[str] = [
     "Boxer",
     "Gladiator",
     "Sniper",
@@ -80,7 +81,7 @@ RANGER_CLASSES: List[str] = [
     "Angel",
 ]
 
-GOAL_LOCATIONS: Dict[str, List[str]] = {
+GOAL_LOCATIONS: dict[str, list[str]] = {
     "Volcano": ["Volcano: Exit", "Volcano: Book", "Volcano: Yellow Boss Box Eel"],
     "Mountaintop": [
         "Mountaintop: Exit",
@@ -97,7 +98,7 @@ GOAL_LOCATIONS: Dict[str, List[str]] = {
     ],
 }
 
-GOAL_OPTIONS_MAP: Dict[int, List[str]] = {
+GOAL_OPTIONS_MAP: dict[int, list[str]] = {
     0: ["Hell Castle"],
     1: ["Volcano"],
     2: ["Mountaintop"],
@@ -105,14 +106,4 @@ GOAL_OPTIONS_MAP: Dict[int, List[str]] = {
     4: ["Hell Castle", "Mountaintop"],
     5: ["Volcano", "Mountaintop"],
     6: ["Hell Castle", "Volcano", "Mountaintop"],
-}
-
-GOAL_EXIT_LOCATIONS: Dict[int, List[str]] = {
-    0: ["Hell Castle: Exit"],
-    1: ["Volcano: Exit"],
-    2: ["Mountaintop: Exit"],
-    3: ["Hell Castle: Exit", "Volcano: Exit"],
-    4: ["Hell Castle: Exit", "Mountaintop: Exit"],
-    5: ["Volcano: Exit", "Mountaintop: Exit"],
-    6: ["Hell Castle: Exit", "Volcano: Exit", "Mountaintop: Exit"],
 }
