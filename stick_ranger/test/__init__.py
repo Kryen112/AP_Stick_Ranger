@@ -1,19 +1,27 @@
 from __future__ import annotations
 
+from BaseClasses import CollectionState
 from test.bases import WorldTestBase
 
 
 class StickRangerTestBase(WorldTestBase):
     game = "Stick Ranger"
 
-    def collect_items(self, *item_names: str) -> None:
+    def state_with(self, *item_names: str) -> CollectionState:
         """
-        Collect items by name without going through the item pool.
+        A state holding exactly these items and nothing else.
 
-        collect_by_name only finds items still in the pool, and one Grassland or
-        Hill Country unlock is always placed locked on an Opening Street check --
-        so a test that happens to name that one silently collects nothing and
-        fails on a seed it has nothing to do with.
+        The shared multiworld.state is not usable for counting rules here.
+        collect() sweeps, and one Grassland or Hill Country unlock is always
+        placed locked on an Opening Street check, so the sweep hands the state a
+        region unlock the test never asked for -- which shifts every "needs N
+        stages" assertion by one on the seeds where that unlock is not one the
+        test was going to collect anyway.
         """
+        state = CollectionState(self.multiworld)
         for item_name in item_names:
-            self.collect(self.world.create_item(item_name))
+            state.collect(self.world.create_item(item_name), prevent_sweep=True)
+        return state
+
+    def can_reach(self, region_name: str, state: CollectionState) -> bool:
+        return self.multiworld.get_region(region_name, self.player).can_reach(state)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from BaseClasses import CollectionState, LocationProgressType
+from BaseClasses import LocationProgressType
 
 from ..constants import CLASS_REQ_OPTIONS
 from ..items import classes, unlocks_by_region
@@ -22,15 +22,12 @@ class TestEveryStageNeedsItsUnlock(StickRangerTestBase):
         every_class = [item.item_name for item in classes]
         for held_back in every_unlock:
             with self.subTest(region=held_back):
-                # A state built from scratch each time -- collect_all_but leaves
-                # the previous subtest's items behind.
-                state = CollectionState(self.multiworld)
-                for name in every_unlock + every_class:
-                    if name != held_back:
-                        state.collect(self.world.create_item(name), prevent_sweep=True)
+                state = self.state_with(
+                    *[name for name in every_unlock + every_class if name != held_back]
+                )
                 region = held_back.removeprefix("Unlock ")
                 self.assertFalse(
-                    self.multiworld.get_region(region, self.player).can_reach(state),
+                    self.can_reach(region, state),
                     f"{region} is reachable without {held_back}",
                 )
 
@@ -52,13 +49,6 @@ class TestBossChain(StickRangerTestBase):
         "max_stages_req_for_hell_castle": 0,
     }
 
-    def state_with(self, *item_names: str) -> CollectionState:
-        """A state holding exactly these items, independent of any other subtest."""
-        state = CollectionState(self.multiworld)
-        for item_name in item_names:
-            state.collect(self.world.create_item(item_name), prevent_sweep=True)
-        return state
-
     def test_each_boss_waits_for_the_previous_one(self) -> None:
         for index, missing in enumerate(BOSS_CHAIN):
             with self.subTest(missing=missing):
@@ -67,12 +57,12 @@ class TestBossChain(StickRangerTestBase):
                 )
                 for blocked in BOSS_CHAIN[index:]:
                     self.assertFalse(
-                        self.multiworld.get_region(blocked, self.player).can_reach(state),
+                        self.can_reach(blocked, state),
                         f"{blocked} opened without Unlock {missing}",
                     )
                 for open_stage in BOSS_CHAIN[:index]:
                     self.assertTrue(
-                        self.multiworld.get_region(open_stage, self.player).can_reach(state),
+                        self.can_reach(open_stage, state),
                         f"{open_stage} should not care about Unlock {missing}",
                     )
 
@@ -80,17 +70,16 @@ class TestBossChain(StickRangerTestBase):
         for boss_rush in ("Volcano", "Mountaintop"):
             with self.subTest(stage=boss_rush):
                 whole_chain = [f"Unlock {name}" for name in BOSS_CHAIN]
-                region = self.multiworld.get_region(boss_rush, self.player)
                 self.assertTrue(
-                    region.can_reach(self.state_with(*whole_chain, f"Unlock {boss_rush}"))
+                    self.can_reach(boss_rush, self.state_with(*whole_chain, f"Unlock {boss_rush}"))
                 )
                 self.assertFalse(
-                    region.can_reach(self.state_with(*whole_chain)),
+                    self.can_reach(boss_rush, self.state_with(*whole_chain)),
                     f"{boss_rush} opened without its own unlock",
                 )
                 self.assertFalse(
-                    region.can_reach(
-                        self.state_with(*whole_chain[:-1], f"Unlock {boss_rush}")
+                    self.can_reach(
+                        boss_rush, self.state_with(*whole_chain[:-1], f"Unlock {boss_rush}")
                     ),
                     f"{boss_rush} opened without Unlock Hell Castle",
                 )
@@ -106,19 +95,22 @@ class TestStageThresholds(StickRangerTestBase):
     }
 
     def test_castle_needs_five_grassland_unlocks(self) -> None:
-        self.collect_items("Unlock Castle")
         grassland = unlocks_by_region["Grassland"]
         for held in range(5):
+            state = self.state_with("Unlock Castle", *grassland[:held])
             self.assertFalse(
-                self.can_reach_region("Castle"),
+                self.can_reach("Castle", state),
                 f"Castle opened on {held} Grassland unlocks, needs 5",
             )
-            self.collect_items(grassland[held])
-        self.assertTrue(self.can_reach_region("Castle"))
+        self.assertTrue(
+            self.can_reach("Castle", self.state_with("Unlock Castle", *grassland[:5]))
+        )
 
     def test_other_regions_do_not_count(self) -> None:
-        self.collect_items("Unlock Castle", *unlocks_by_region["Sea"], *unlocks_by_region["Hell"])
-        self.assertFalse(self.can_reach_region("Castle"))
+        state = self.state_with(
+            "Unlock Castle", *unlocks_by_region["Sea"], *unlocks_by_region["Hell"]
+        )
+        self.assertFalse(self.can_reach("Castle", state))
 
 
 class TestClassGate(StickRangerTestBase):
@@ -133,12 +125,21 @@ class TestClassGate(StickRangerTestBase):
     }
 
     def test_starting_class_counts(self) -> None:
-        self.collect_items("Unlock Castle")
-        self.assertFalse(self.can_reach_region("Castle"), "1 class should not satisfy 3")
-        self.collect_items("Unlock Sniper Class")
-        self.assertFalse(self.can_reach_region("Castle"), "2 classes should not satisfy 3")
-        self.collect_items("Unlock Angel Class")
-        self.assertTrue(self.can_reach_region("Castle"), "start + 2 unlocks is 3")
+        castle = ["Unlock Castle"]
+        self.assertFalse(
+            self.can_reach("Castle", self.state_with(*castle)),
+            "one class should not satisfy three",
+        )
+        self.assertFalse(
+            self.can_reach("Castle", self.state_with(*castle, "Unlock Sniper Class")),
+            "two classes should not satisfy three",
+        )
+        self.assertTrue(
+            self.can_reach(
+                "Castle", self.state_with(*castle, "Unlock Sniper Class", "Unlock Angel Class")
+            ),
+            "start + 2 unlocks is 3",
+        )
 
 
 class TestClassRequirementsResolved(StickRangerTestBase):
