@@ -46,6 +46,14 @@ CLASS_REQ_OPTIONS: list[str] = [
     "classes_req_for_hell_castle",
 ]
 
+# Options whose value is decided during generation rather than taken from the
+# yaml: the stage gates are rolled between min and max, and the class gates are
+# zeroed and clamped. Universal Tracker restores these from slot_data instead of
+# rolling its own, which is what made the tracker and the in-game map disagree.
+ROLLED_OPTIONS: list[str] = [
+    required for _, _, _, required in STAGE_SETTINGS
+] + CLASS_REQ_OPTIONS
+
 ENEMIES_OPTION_NON_BOSS: int = 1
 ENEMIES_OPTION_BOSS: int = 2
 ENEMIES_OPTION_ALL: int = 3

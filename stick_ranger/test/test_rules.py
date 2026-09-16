@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from BaseClasses import LocationProgressType
 
-from ..constants import CLASS_REQ_OPTIONS
+from ..constants import CLASS_REQ_OPTIONS, ROLLED_OPTIONS
 from ..items import classes, unlocks_by_region
 from ..regions import regions
 from . import StickRangerTestBase
@@ -222,3 +222,44 @@ class TestGoalAllExcludesNothing(StickRangerTestBase):
             if location.progress_type is LocationProgressType.EXCLUDED
         ]
         self.assertEqual(excluded, [])
+
+
+class TestTrackerPassthrough(StickRangerTestBase):
+    """
+    Universal Tracker rebuilds the world from the yaml, so anything decided
+    during generation has to come back from slot_data or the tracker disagrees
+    with the seed about what is in logic.
+    """
+
+    options = {
+        "ranger_class_randomizer": 1,
+        "min_stages_req_for_castle": 0,
+        "max_stages_req_for_castle": 17,
+    }
+
+    def test_rolled_values_are_restored_not_rerolled(self) -> None:
+        world = self.multiworld.worlds[self.player]
+        slot_data = world.fill_slot_data()
+
+        # What UT sends back is exactly what interpret_slot_data returns.
+        self.assertEqual(world.interpret_slot_data(slot_data), slot_data)
+
+        # Pretend to be UT: hand the seed's own numbers to a fresh generation
+        # and check nothing gets rolled over the top of them.
+        pretend = {name: 3 for name in ROLLED_OPTIONS}
+        self.multiworld.re_gen_passthrough = {"Stick Ranger": pretend}
+        try:
+            world.generate_early()
+            for name in ROLLED_OPTIONS:
+                self.assertEqual(
+                    getattr(world.options, name).value,
+                    3,
+                    f"{name} was re-rolled instead of restored",
+                )
+        finally:
+            del self.multiworld.re_gen_passthrough
+
+    def test_every_rolled_option_is_in_slot_data(self) -> None:
+        slot_data = self.multiworld.worlds[self.player].fill_slot_data()
+        for name in ROLLED_OPTIONS:
+            self.assertIn(name, slot_data, f"{name} is decided at generation but never shipped")

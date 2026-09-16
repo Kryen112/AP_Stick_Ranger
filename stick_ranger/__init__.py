@@ -18,6 +18,7 @@ from .constants import (
     OPENING_STREET_ENEMIES,
     OPENING_STREET_EXIT,
     RANGER_CLASSES,
+    ROLLED_OPTIONS,
     STAGE_SETTINGS,
     STARTER_UNLOCK_CHOICES,
     TRAP_SHARE_BY_OPTION,
@@ -86,8 +87,37 @@ class StickRanger(World):
     def generate_early(self) -> None:
         self._validate_options()
         self.excluded_locations = self._compute_excluded_locations()
-        self._resolve_class_requirements()
-        self._roll_stage_requirements()
+        restored = self._tracker_passthrough()
+        if restored is None:
+            self._resolve_class_requirements()
+            self._roll_stage_requirements()
+        else:
+            self._restore_requirements(restored)
+
+    @staticmethod
+    def interpret_slot_data(slot_data: dict[str, Any]) -> dict[str, Any]:
+        """
+        Universal Tracker hook.
+
+        The boss gates are decided during generation, so a tracker rebuilding
+        the world from the yaml alone rolls its own numbers and then disagrees
+        with the seed about what is in logic. Returning slot_data asks UT to
+        re-generate with it, and generate_early reads it back below.
+        """
+        return slot_data
+
+    def _tracker_passthrough(self) -> "dict[str, Any] | None":
+        """The slot_data Universal Tracker handed back, if this is a UT re-gen."""
+        passthrough = getattr(self.multiworld, "re_gen_passthrough", None)
+        if not passthrough:
+            return None
+        return passthrough.get(self.game)
+
+    def _restore_requirements(self, slot_data: dict[str, Any]) -> None:
+        """Use the seed's own rolled values rather than rolling new ones."""
+        for option_name in ROLLED_OPTIONS:
+            if option_name in slot_data:
+                getattr(self.options, option_name).value = slot_data[option_name]
 
     def _validate_options(self) -> None:
         """Raise if neither books nor enemies are shuffled."""
