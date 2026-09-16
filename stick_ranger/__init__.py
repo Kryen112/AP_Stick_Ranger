@@ -24,6 +24,8 @@ from .constants import (
     TRAP_SHARE_BY_OPTION,
 )
 from .items import (
+    PROGRESSIVE_SHOP,
+    PROGRESSIVE_SHOP_TIERS,
     SRItem,
     filler,
     item_name_groups,
@@ -280,6 +282,11 @@ class StickRanger(World):
             )
         )
 
+        if self.options.progressive_shop:
+            itempool.extend(
+                self.create_item(PROGRESSIVE_SHOP) for _ in range(PROGRESSIVE_SHOP_TIERS)
+            )
+
         itempool.extend(self._create_traps(self.location_count - len(itempool)))
         while len(itempool) < self.location_count:
             itempool.append(self.create_item(self.get_filler_item_name()))
@@ -339,6 +346,7 @@ class StickRanger(World):
             "shop_hints",
             "traps",
             "free_respec",
+            "progressive_shop",
             "remove_null_compo",
             "death_link",
         )

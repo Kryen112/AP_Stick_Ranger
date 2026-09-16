@@ -8,6 +8,7 @@ from collections import Counter
 from Options import OptionError
 
 from ..constants import GOAL_OPTIONS_MAP
+from ..items import PROGRESSIVE_SHOP, PROGRESSIVE_SHOP_TIERS
 from . import StickRangerTestBase
 
 
@@ -149,5 +150,24 @@ class TestMaximumStageRequirements(SweepTestBase):
             "shuffle_books": 1,
             "shuffle_enemies": 3,
         }
+        self.world_setup()
+        self.assertSeedWorks()
+
+
+class TestProgressiveShop(SweepTestBase):
+    def test_one_item_per_shop_tier(self) -> None:
+        self.options = {"progressive_shop": 1, "shuffle_books": 1, "shuffle_enemies": 3}
+        self.world_setup()
+        self.assertEqual(self.pool_counts()[PROGRESSIVE_SHOP], PROGRESSIVE_SHOP_TIERS)
+        self.assertSeedWorks()
+
+    def test_absent_when_the_option_is_off(self) -> None:
+        self.options = {"progressive_shop": 0}
+        self.world_setup()
+        self.assertEqual(self.pool_counts()[PROGRESSIVE_SHOP], 0)
+
+    def test_fits_the_smallest_pool(self) -> None:
+        """33 extra items still has to fit a books-only seed."""
+        self.options = {"progressive_shop": 1, "shuffle_books": 1, "shuffle_enemies": 0}
         self.world_setup()
         self.assertSeedWorks()

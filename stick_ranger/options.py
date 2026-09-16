@@ -421,6 +421,18 @@ class Traps(Choice):
     default = 0
 
 
+class ProgressiveShop(Toggle):
+    """
+    When enabled, the shop's stock is unlocked by Progressive Shop items instead
+    of by completing stages.
+
+    There are 32 of them, one per row of the shop past the first, and they apply
+    to every town's shop rather than only the first one.
+    """
+
+    display_name = "Progressive Shop"
+
+
 class FreeRespec(Toggle):
     """
     When enabled, respeccing at the Forget Tree is always free.
@@ -473,6 +485,7 @@ class SROptions(PerGameCommonOptions):
     randomize_book_costs: BookCostRandomizer
     traps: Traps
     free_respec: FreeRespec
+    progressive_shop: ProgressiveShop
     remove_null_compo: RemoveNullCompo
     death_link: DeathLink
 
@@ -509,7 +522,7 @@ SR_OPTION_GROUPS: list[OptionGroup] = [
     ),
     OptionGroup(
         "Checks",
-        [ShuffleBooks, ShuffleEnemies, ShopHints, BookCostRandomizer],
+        [ShuffleBooks, ShuffleEnemies, ShopHints, BookCostRandomizer, ProgressiveShop],
     ),
     OptionGroup(
         "Quality of Life",

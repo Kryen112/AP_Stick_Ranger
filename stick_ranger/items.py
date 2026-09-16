@@ -713,9 +713,28 @@ classes: list[RangerClassData] = [
     RangerClassData(14007, "Unlock Angel Class", ItemClassification.progression),
 ]
 
-ItemData = StagesData | FillerData | TrapItemData | RangerClassData
 
-item_list: list[ItemData] = [*stages, *filler, *traps, *classes]
+class ProgressiveShopData(NamedTuple):
+    code: int
+    item_name: str
+    classification: ItemClassification
+
+
+# One item name, handed out 32 times -- the usual Archipelago progressive shape.
+# Each copy reveals one more row of the shop. There are 33 rows and the first is
+# open from the start, so 32 is what it takes to open the rest; a 33rd would be a
+# check that does nothing. Useful rather than progression: the shop stock is not
+# a check, so nothing in logic sits behind these.
+PROGRESSIVE_SHOP = "Progressive Shop"
+PROGRESSIVE_SHOP_TIERS = 32
+
+progressive_shop: list[ProgressiveShopData] = [
+    ProgressiveShopData(15000, PROGRESSIVE_SHOP, ItemClassification.useful),
+]
+
+ItemData = StagesData | FillerData | TrapItemData | RangerClassData | ProgressiveShopData
+
+item_list: list[ItemData] = [*stages, *filler, *traps, *classes, *progressive_shop]
 
 item_table: dict[str, ItemData] = {item.item_name: item for item in item_list}
 items_by_id: dict[int, ItemData] = {item.code: item for item in item_list}
@@ -734,6 +753,7 @@ item_name_groups: dict[str, set[str]] = {
     "Town Unlocks": {stage.item_name for stage in stages if stage.region == "Town"},
     "Ranger Classes": {ranger_class.item_name for ranger_class in classes},
     "Traps": {trap.item_name for trap in traps},
+    "Shop": {PROGRESSIVE_SHOP},
     **{
         f"{region} Unlocks": set(names)
         for region, names in unlocks_by_region.items()
