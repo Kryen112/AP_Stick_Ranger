@@ -1,0 +1,75 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  world-tests:
+    name: World tests on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13']
+
+    steps:
+      - name: Check out the world
+        uses: actions/checkout@v4
+        with:
+          path: world
+
+      # The tests run inside a real Archipelago tree: they subclass
+      # test.bases.WorldTestBase and exercise fill, so there is no useful
+      # standalone mode. Pinned, because a world that passes against one AP
+      # release can fail against the next for reasons that are not ours.
+      - name: Check out Archipelago
+        uses: actions/checkout@v4
+        with:
+          repository: ArchipelagoMW/Archipelago
+          ref: 0.6.7
+          path: Archipelago
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install Archipelago's dependencies
+        working-directory: Archipelago
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ci-requirements.txt
+          python ModuleUpdate.py --yes --force
+          python Launcher.py --update_settings   # tests want a host.yaml
+
+      - name: Install the world
+        run: cp -r world/stick_ranger Archipelago/worlds/stick_ranger
+
+      - name: Run the world's tests
+        working-directory: Archipelago
+        run: pytest worlds/stick_ranger/test -q
+
+      # The rest of AP's per-world contract: manifest shape, item/location
+      # groups, option pickling, reachability. Deselected for other worlds so a
+      # failure elsewhere in the tree never reads as ours.
+      - name: Run Archipelago's general tests
+        working-directory: Archipelago
+        run: pytest test/general -q -k "not Test_" --no-header
+
+  lint:
+    name: flake8
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install flake8
+      # Hard gate on syntax errors and undefined names, same as Archipelago's
+      # own analyze-modified-files workflow.
+      - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - run: flake8 . --count --exit-zero --statistics
