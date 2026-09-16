@@ -57,61 +57,71 @@ class RangerClassSelector(Choice):
 
 class CastleClassUnlocks(Range):
     """
-    Minimum number of additional Ranger Classes you must unlock before entering the Castle stage.
-    Applies only when Class Randomizer is enabled (your starting class is not counted here).
+    Number of Ranger Classes you must have before entering the Castle stage.
+    Your starting class counts towards this, so 1 means "no extra classes needed".
+    Ignored unless Class Randomizer is enabled, and raised to match an earlier
+    boss stage that asks for more.
     """
 
     display_name = "Classes required for Castle"
     range_start = 0
-    range_end = 7
+    range_end = 8
     default = 2
 
 
 class SubmarineShrineClassUnlocks(Range):
     """
-    Minimum number of additional Ranger Classes you must unlock before entering the Submarine Shrine stage.
-    Applies only when Class Randomizer is enabled (your starting class is not counted here).
+    Number of Ranger Classes you must have before entering the Submarine Shrine stage.
+    Your starting class counts towards this, so 1 means "no extra classes needed".
+    Ignored unless Class Randomizer is enabled, and raised to match an earlier
+    boss stage that asks for more.
     """
 
     display_name = "Classes required for Submarine Shrine"
     range_start = 0
-    range_end = 7
+    range_end = 8
     default = 3
 
 
 class PyramidClassUnlocks(Range):
     """
-    Minimum number of additional Ranger Classes you must unlock before entering the Pyramid stage.
-    Applies only when Class Randomizer is enabled (your starting class is not counted here).
+    Number of Ranger Classes you must have before entering the Pyramid stage.
+    Your starting class counts towards this, so 1 means "no extra classes needed".
+    Ignored unless Class Randomizer is enabled, and raised to match an earlier
+    boss stage that asks for more.
     """
 
     display_name = "Classes required for Pyramid"
     range_start = 0
-    range_end = 7
+    range_end = 8
     default = 4
 
 
 class IceCastleClassUnlocks(Range):
     """
-    Minimum number of additional Ranger Classes you must unlock before entering the Ice Castle stage.
-    Applies only when Class Randomizer is enabled (your starting class is not counted here).
+    Number of Ranger Classes you must have before entering the Ice Castle stage.
+    Your starting class counts towards this, so 1 means "no extra classes needed".
+    Ignored unless Class Randomizer is enabled, and raised to match an earlier
+    boss stage that asks for more.
     """
 
     display_name = "Classes required for Ice Castle"
     range_start = 0
-    range_end = 7
+    range_end = 8
     default = 5
 
 
 class HellCastleClassUnlocks(Range):
     """
-    Minimum number of additional Ranger Classes you must unlock before entering the Hell Castle stage.
-    Applies only when Class Randomizer is enabled (your starting class is not counted here).
+    Number of Ranger Classes you must have before entering the Hell Castle stage.
+    Your starting class counts towards this, so 1 means "no extra classes needed".
+    Ignored unless Class Randomizer is enabled, and raised to match an earlier
+    boss stage that asks for more.
     """
 
     display_name = "Classes required for Hell Castle"
     range_start = 0
-    range_end = 7
+    range_end = 8
     default = 6
 
 

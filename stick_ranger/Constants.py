@@ -33,6 +33,18 @@ STAGE_SETTINGS: List[Tuple[str, str, str, str]] = [
     ),
 ]
 
+# Boss gates in progression order. generate_early clamps these so a later boss
+# never asks for fewer classes than an earlier one, and zeroes them all when
+# Class Randomizer is off -- fill_slot_data then ships the resolved values, so
+# the in-game logic display gates on the same numbers the rules do.
+CLASS_REQ_OPTIONS: List[str] = [
+    "classes_req_for_castle",
+    "classes_req_for_submarine_shrine",
+    "classes_req_for_pyramid",
+    "classes_req_for_ice_castle",
+    "classes_req_for_hell_castle",
+]
+
 ENEMIES_OPTION_NON_BOSS: int = 1
 ENEMIES_OPTION_BOSS: int = 2
 ENEMIES_OPTION_ALL: int = 3

@@ -1,19 +1,13 @@
 from typing import TYPE_CHECKING, Any, Dict, List, Set
 
-from BaseClasses import Entrance, Location, Region, Tutorial
+from BaseClasses import Entrance, Location, LocationProgressType, Region, Tutorial
 from Options import OptionError
 from worlds.AutoWorld import WebWorld, World
 
 from .Constants import *
 from .Items import SRItem, TrapItemData, filler, item_table, stages, traps
-from .Locations import (
-    LocationDict,
-    SRLocation,
-    books_table,
-    enemies_table,
-    location_name_to_id,
-    stages_table,
-)
+from .Locations import (LocationDict, SRLocation, books_table, enemies_table,
+                        location_name_to_id, stages_table)
 from .Options import SROptions
 from .Regions import regions
 from .Rules import set_rules
@@ -80,6 +74,30 @@ class StickRanger(World):
         existing: Set[str] = set(self.location_name_to_id.keys())
         return non_goal_locations & existing
 
+    def _resolve_class_requirements(self) -> None:
+        """
+        Turn the raw 'classes required' options into the values the rules use.
+
+        Class Randomizer off means no class is ever shuffled, so every gate drops
+        to 0. Otherwise the gates are clamped to be non-decreasing: asking for 5
+        classes at the Castle and 2 at the Pyramid would let the Pyramid look
+        easier than a boss you already passed, so the Pyramid inherits the 5.
+
+        Writing the result back onto the options is what makes fill_slot_data
+        ship the resolved numbers, so the client's stage colouring gates on the
+        same values as the generator.
+        """
+        if not self.options.ranger_class_randomizer:
+            for option_name in CLASS_REQ_OPTIONS:
+                getattr(self.options, option_name).value = 0
+            return
+
+        required: int = 0
+        for option_name in CLASS_REQ_OPTIONS:
+            option = getattr(self.options, option_name)
+            required = max(required, option.value)
+            option.value = required
+
     def _generate_randomness(self) -> None:
         """Clamp min/max and roll actual required stages per goal."""
         rng: Random = self.multiworld.random
@@ -101,6 +119,7 @@ class StickRanger(World):
     def generate_early(self) -> None:
         self._validate_options()
         self.excluded_locations: Set[str] = self._compute_excluded_locations()
+        self._resolve_class_requirements()
         self._generate_randomness()
 
     def create_regions(self) -> None:
@@ -161,7 +180,23 @@ class StickRanger(World):
             world_map_region.exits.append(world_map_exit)
             world_map_exit.connect(region)
 
+        self._exclude_non_goal_locations()
         self.location_count: int = len(self.multiworld.get_locations(self.player))
+
+    def _exclude_non_goal_locations(self) -> None:
+        """
+        Keep progression out of boss stages this seed's goal does not use.
+
+        Volcano, Mountaintop and Hell Castle all stay playable whatever the goal
+        is, but a goal you were never asked to finish should not be the thing
+        standing between you and someone else's progression item.
+        """
+        own_locations: Set[str] = {
+            location.name for location in self.multiworld.get_locations(self.player)
+        }
+        for location_name in self.excluded_locations & own_locations:
+            location: Location = self.multiworld.get_location(location_name, self.player)
+            location.progress_type = LocationProgressType.EXCLUDED
 
     def create_item(self, name: str) -> SRItem:
         item_data: Any | None = item_table.get(name)
@@ -200,7 +235,6 @@ class StickRanger(World):
             self.create_item(unlock.item_name)
             for unlock in stages
             if unlock.item_name != starter_item_name
-            if unlock.item_name not in self.excluded_locations
             and (
                 not self.options.ranger_class_randomizer.value
                 or unlock.item_name != "Unlock Forget Tree"

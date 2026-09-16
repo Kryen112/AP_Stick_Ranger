@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, Dict, List
+from typing import TYPE_CHECKING, Callable, List
 
 from BaseClasses import CollectionState, MultiWorld
 from worlds.generic.Rules import set_rule
@@ -11,9 +11,13 @@ if TYPE_CHECKING:
     from . import StickRanger
 
 
-def class_count(state, player: int) -> int:
-    """Return the number of ranger classes the player has unlocked."""
-    return sum(state.has(f"Unlock {cls} Class", player) for cls in RANGER_CLASSES)
+def class_count(state: CollectionState, player: int) -> int:
+    """Return the number of ranger classes the player has.
+
+    The starting class counts: the client tallies it too, and every 'classes
+    required' option is documented as a total, not as 'additional unlocks'.
+    """
+    return 1 + sum(state.has(f"Unlock {cls} Class", player) for cls in RANGER_CLASSES)
 
 
 def reached_castle(
@@ -86,14 +90,19 @@ def reached_hell_castle(
 
 
 def set_region_rules(
-    player: int, multiworld: MultiWorld, options: SROptions, boss_stage_reqs
+    player: int, multiworld: MultiWorld, options: SROptions
 ) -> None:
     """
     Sets region rules for every stage, except every stage before the Castle stage.
     This ensures players can beat the levels they unlock and make for a nice progression feeling.
+
+    The class requirements are read straight off the options: generate_early has
+    already zeroed them when Class Randomizer is off and clamped them so a later
+    boss never asks for fewer classes than an earlier one, so what the rules use
+    here is exactly what fill_slot_data ships to the client.
     """
     castle_predicate: Callable[[CollectionState], bool] = reached_castle(
-        player, options.stages_req_for_castle.value, boss_stage_reqs["Castle"]
+        player, options.stages_req_for_castle.value, options.classes_req_for_castle.value
     )
     set_rule(multiworld.get_entrance("Castle", player), castle_predicate)
 
@@ -102,7 +111,7 @@ def set_region_rules(
             player,
             castle_predicate,
             options.stages_req_for_submarine_shrine.value,
-            boss_stage_reqs["Submarine Shrine"],
+            options.classes_req_for_submarine_shrine.value,
         )
     )
     set_rule(
@@ -113,7 +122,7 @@ def set_region_rules(
         player,
         submarine_shrine_predicate,
         options.stages_req_for_pyramid.value,
-        boss_stage_reqs["Pyramid"],
+        options.classes_req_for_pyramid.value,
     )
     set_rule(multiworld.get_entrance("Pyramid", player), pyramid_predicate)
 
@@ -121,7 +130,7 @@ def set_region_rules(
         player,
         pyramid_predicate,
         options.stages_req_for_ice_castle.value,
-        boss_stage_reqs["Ice Castle"],
+        options.classes_req_for_ice_castle.value,
     )
     set_rule(multiworld.get_entrance("Ice Castle", player), ice_castle_predicate)
 
@@ -129,11 +138,21 @@ def set_region_rules(
         player,
         ice_castle_predicate,
         options.stages_req_for_hell_castle.value,
-        boss_stage_reqs["Hell Castle"],
+        options.classes_req_for_hell_castle.value,
     )
     set_rule(multiworld.get_entrance("Hell Castle", player), hell_castle_predicate)
-    set_rule(multiworld.get_entrance("Volcano", player), hell_castle_predicate)
-    set_rule(multiworld.get_entrance("Mountaintop", player), hell_castle_predicate)
+
+    # Volcano and Mountaintop sit behind the Hell Castle gate, but each still
+    # needs its own stage unlock. set_rule() replaces the access_rule that
+    # create_regions() installed, so the unlock has to be repeated here --
+    # without it the fill is free to hide "Unlock Volcano" inside Volcano.
+    for boss_stage in ("Volcano", "Mountaintop"):
+        set_rule(
+            multiworld.get_entrance(boss_stage, player),
+            lambda state, _pl=player, _nm=f"Unlock {boss_stage}", _h=hell_castle_predicate: (
+                state.has(_nm, _pl, 1) and _h(state)
+            ),
+        )
 
     for unlock_name in unlocks_by_region["Sea"]:
         entrance_name = multiworld.get_entrance(
@@ -194,28 +213,4 @@ def set_rules(self: "StickRanger") -> None:
         state.can_reach(loc, "Location", player) for loc in goal_exit_names
     )
 
-    boss_stage_requirements: Dict[str, int] = {
-        "Castle": options.classes_req_for_castle.value,
-        "Submarine Shrine": options.classes_req_for_submarine_shrine.value,
-        "Pyramid": options.classes_req_for_pyramid.value,
-        "Ice Castle": options.classes_req_for_ice_castle.value,
-        "Hell Castle": options.classes_req_for_hell_castle.value,
-    }
-
-    if not options.ranger_class_randomizer.value:
-        for stage in boss_stage_requirements:
-            boss_stage_requirements[stage] = 0
-
-    order: List[str] = [
-        "Castle",
-        "Submarine Shrine",
-        "Pyramid",
-        "Ice Castle",
-        "Hell Castle",
-    ]
-    for previous, next in zip(order, order[1:]):
-        boss_stage_requirements[next] = max(
-            boss_stage_requirements[previous], boss_stage_requirements[next]
-        )
-
-    set_region_rules(player, multiworld, options, boss_stage_requirements)
+    set_region_rules(player, multiworld, options)
