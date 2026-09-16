@@ -53,12 +53,15 @@ jobs:
         working-directory: Archipelago
         run: pytest worlds/stick_ranger/test -q
 
-      # The rest of AP's per-world contract: manifest shape, item/location
-      # groups, option pickling, reachability. Deselected for other worlds so a
-      # failure elsewhere in the tree never reads as ours.
+      # The rest of AP's per-world contract: manifest shape, item and location
+      # groups, option pickling, reachability, fill. Most of these iterate every
+      # registered world inside one test, so there is no way to select only
+      # ours -- the whole suite runs, and a failure could in principle come from
+      # a world Archipelago ships. The checkout is pinned to a tagged release
+      # for exactly that reason.
       - name: Run Archipelago's general tests
         working-directory: Archipelago
-        run: pytest test/general -q -k "not Test_" --no-header
+        run: pytest test/general -q --no-header -n auto
 
   lint:
     name: flake8
