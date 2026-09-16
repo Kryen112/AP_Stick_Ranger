@@ -78,7 +78,7 @@ class TestCheckSourceSweep(SweepTestBase):
 
 class TestTrapSweep(SweepTestBase):
     def test_every_trap_level_fills(self) -> None:
-        for traps in range(5):
+        for traps in range(6):   # none, 5, 10, 20, 50, 100
             with self.subTest(traps=traps):
                 self.options = {"traps": traps, "shuffle_books": 1, "shuffle_enemies": 3}
                 self.world_setup()

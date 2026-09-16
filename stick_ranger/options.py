@@ -403,14 +403,21 @@ class BookCostRandomizer(Choice):
 
 
 class Traps(Choice):
-    """Configure if and how many Trap items there are, replacing filler items."""
+    """
+    What share of the filler items are Traps.
+
+    The share is of the items left once every stage and class unlock is placed,
+    so at 100 every non-progression check you find is a Trap and Archipelago
+    never hands you a weapon or a compo.
+    """
 
     display_name = "Traps"
     option_none = 0
-    option_some = 1
-    option_half = 2
-    option_most = 3
-    option_all = 4
+    option_5 = 1
+    option_10 = 2
+    option_20 = 3
+    option_50 = 4
+    option_100 = 5
     default = 0
 
 

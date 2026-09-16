@@ -50,7 +50,10 @@ ENEMIES_OPTION_NON_BOSS: int = 1
 ENEMIES_OPTION_BOSS: int = 2
 ENEMIES_OPTION_ALL: int = 3
 
-TRAP_STEP_PERCENT: int = 25
+# Share of the filler budget that becomes Traps, per Traps option value. The
+# old scale was a flat 25% per step, which made the lowest setting rougher than
+# anyone wanted.
+TRAP_SHARE_BY_OPTION: dict[int, int] = {0: 0, 1: 5, 2: 10, 3: 20, 4: 50, 5: 100}
 
 STARTER_UNLOCK_CHOICES: list[str] = [
     "Unlock Grassland 1",

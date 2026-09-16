@@ -20,7 +20,7 @@ from .constants import (
     RANGER_CLASSES,
     STAGE_SETTINGS,
     STARTER_UNLOCK_CHOICES,
-    TRAP_STEP_PERCENT,
+    TRAP_SHARE_BY_OPTION,
 )
 from .items import (
     SRItem,
@@ -280,7 +280,7 @@ class StickRanger(World):
     def _create_traps(self, open_locations: int) -> list[SRItem]:
         if not self.options.traps:
             return []
-        share = self.options.traps.value * TRAP_STEP_PERCENT / 100
+        share = TRAP_SHARE_BY_OPTION[self.options.traps.value] / 100
         weights = [trap.weight for trap in traps]
         return [
             self.create_item(self.random.choices(traps, weights=weights, k=1)[0].item_name)
