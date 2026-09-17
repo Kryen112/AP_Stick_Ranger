@@ -381,6 +381,7 @@ class StickRanger(World):
             "traps",
             "free_respec",
             "progressive_shop",
+            "enforce_logic",
             "remove_null_compo",
             "death_link",
         )

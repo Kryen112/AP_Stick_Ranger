@@ -318,10 +318,9 @@ class TestLogicDescription(StickRangerTestBase):
             [{"stage": 55, "after": 88}, {"stage": 89, "after": 88}],
         )
 
-    def test_free_and_town_stages(self) -> None:
-        described = self.logic()
-        self.assertEqual(described["free"], [1])            # Opening Street
-        self.assertEqual(described["towns"], [0, 20, 47, 70, 77])
+    def test_free_stages(self) -> None:
+        """Opening Street has no unlock item, so it is always available."""
+        self.assertEqual(self.logic()["free"], [1])
 
     def test_no_boss_stage_is_counted_by_a_region(self) -> None:
         described = self.logic()

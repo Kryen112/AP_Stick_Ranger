@@ -427,6 +427,18 @@ class Traps(Choice):
     default = 0
 
 
+class EnforceLogic(Toggle):
+    """
+    When enabled, stages that are out of logic cannot be entered at all.
+
+    They still show on the map, greyed out, so you can see what you hold. There
+    is no way to override it mid-run, which is the point: the run cannot be
+    broken by accident or on purpose.
+    """
+
+    display_name = "Enforce Logic"
+
+
 class ShopChecks(Toggle):
     """
     When enabled, buying each item in a shop for the first time sends a check.
@@ -504,6 +516,7 @@ class SROptions(PerGameCommonOptions):
     traps: Traps
     free_respec: FreeRespec
     progressive_shop: ProgressiveShop
+    enforce_logic: EnforceLogic
     shop_checks: ShopChecks
     remove_null_compo: RemoveNullCompo
     death_link: DeathLink
@@ -545,6 +558,6 @@ SR_OPTION_GROUPS: list[OptionGroup] = [
     ),
     OptionGroup(
         "Quality of Life",
-        [GoldMultiplier, XPMultiplier, DropMultiplier, RemoveNullCompo, FreeRespec],
+        [GoldMultiplier, XPMultiplier, DropMultiplier, RemoveNullCompo, FreeRespec, EnforceLogic],
     ),
 ]

@@ -25,9 +25,7 @@ from .constants import RANGER_CLASSES
 from .items import (
     OPENING_STREET_STAGE_ID,
     PROGRESSIVE_SHOP,
-    TOWN_STAGE_ID,
     stage_id,
-    stages,
     unlocks_by_region,
 )
 from .options import SROptions
@@ -203,9 +201,7 @@ def logic_description(options: SROptions) -> dict[str, object]:
         "boss_rush": [
             {"stage": stage_id(name), "after": previous_stage} for name in BOSS_RUSH_STAGES
         ],
-        # Playable with no unlock item at all.
+        # Playable with no unlock item at all. Which stages are towns is map
+        # geometry rather than a rule, so the client owns that list itself.
         "free": [OPENING_STREET_STAGE_ID],
-        "towns": sorted(
-            [TOWN_STAGE_ID] + [stage_id(s.item_name.removeprefix("Unlock ")) for s in stages if s.region == "Town"]
-        ),
     }
