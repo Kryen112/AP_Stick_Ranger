@@ -427,6 +427,33 @@ class Traps(Choice):
     default = 0
 
 
+class RingLink(Toggle):
+    """
+    When enabled, your gold is linked to every other Ring Link player's rings.
+
+    Gold you gain sends rings to the room; rings you receive become gold. It
+    works in both directions, so spending sends a negative.
+    """
+
+    display_name = "Ring Link"
+
+
+class RingLinkRatio(Range):
+    """
+    How much gold one Ring Link ring is worth, in both directions.
+
+    Stick Ranger's gold is one to two orders of magnitude larger than the ring
+    counts games like Sonic deal in -- a single enemy drops up to 9999 -- so
+    sending gold unscaled would flood the room. At the default, earning 300 gold
+    sends 3 rings and receiving 10 rings pays 1000 gold.
+    """
+
+    display_name = "Ring Link Ratio"
+    range_start = 1
+    range_end = 1000
+    default = 100
+
+
 class RingGold(Range):
     """
     Gold earned every time an Angel throws a ring. 0 turns it off.
@@ -534,6 +561,8 @@ class SROptions(PerGameCommonOptions):
     progressive_shop: ProgressiveShop
     enforce_logic: EnforceLogic
     ring_gold: RingGold
+    ring_link: RingLink
+    ring_link_ratio: RingLinkRatio
     shop_checks: ShopChecks
     remove_null_compo: RemoveNullCompo
     death_link: DeathLink
@@ -568,6 +597,10 @@ SR_OPTION_GROUPS: list[OptionGroup] = [
             HellCastleMinimumStagesUnlocks,
             HellCastleMaximumStagesUnlocks,
         ],
+    ),
+    OptionGroup(
+        "Links",
+        [RingLink, RingLinkRatio],
     ),
     OptionGroup(
         "Checks",

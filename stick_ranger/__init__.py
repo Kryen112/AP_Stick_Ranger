@@ -383,6 +383,8 @@ class StickRanger(World):
             "progressive_shop",
             "enforce_logic",
             "ring_gold",
+            "ring_link",
+            "ring_link_ratio",
             "remove_null_compo",
             "death_link",
         )
