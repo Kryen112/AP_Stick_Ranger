@@ -427,6 +427,22 @@ class Traps(Choice):
     default = 0
 
 
+class RingGold(Range):
+    """
+    Gold earned every time an Angel throws a ring. 0 turns it off.
+
+    Angels throw roughly two rings a second each, or seven on a quick ring, so
+    four of them at the maximum out-earns every enemy in the game several times
+    over. The payout is flat: it ignores the Gold Multiplier and the Gold Medal,
+    so the number here is the number you get.
+    """
+
+    display_name = "Gold per Thrown Ring"
+    range_start = 0
+    range_end = 1000
+    default = 50
+
+
 class EnforceLogic(Toggle):
     """
     When enabled, stages that are out of logic cannot be entered at all.
@@ -517,6 +533,7 @@ class SROptions(PerGameCommonOptions):
     free_respec: FreeRespec
     progressive_shop: ProgressiveShop
     enforce_logic: EnforceLogic
+    ring_gold: RingGold
     shop_checks: ShopChecks
     remove_null_compo: RemoveNullCompo
     death_link: DeathLink
@@ -558,6 +575,6 @@ SR_OPTION_GROUPS: list[OptionGroup] = [
     ),
     OptionGroup(
         "Quality of Life",
-        [GoldMultiplier, XPMultiplier, DropMultiplier, RemoveNullCompo, FreeRespec, EnforceLogic],
+        [GoldMultiplier, XPMultiplier, DropMultiplier, RingGold, RemoveNullCompo, FreeRespec, EnforceLogic],
     ),
 ]

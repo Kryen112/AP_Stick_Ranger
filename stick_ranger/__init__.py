@@ -382,6 +382,7 @@ class StickRanger(World):
             "free_respec",
             "progressive_shop",
             "enforce_logic",
+            "ring_gold",
             "remove_null_compo",
             "death_link",
         )
