@@ -53,7 +53,7 @@ from .locations import (
 from .options import SR_OPTION_GROUPS, SROptions
 from .shop import shop_table
 from .regions import TOWN_REGIONS, regions
-from .rules import set_region_rules, set_shop_rules
+from .rules import logic_description, set_region_rules, set_shop_rules
 
 WORLD_MAP = "World Map"
 
@@ -384,6 +384,9 @@ class StickRanger(World):
             "remove_null_compo",
             "death_link",
         )
+        # The client evaluates this instead of carrying its own copy of the
+        # rules, so the two cannot drift apart.
+        slot_data["logic"] = logic_description(self.options)
         slot_data["player_name"] = self.player_name
         slot_data["player_id"] = self.player
         return slot_data

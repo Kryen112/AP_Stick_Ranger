@@ -733,6 +733,22 @@ SHOP_TOWN_UNLOCKS: dict[str, str] = {
     "Island": "Unlock Island",
 }
 
+# An "Unlock <stage>" item's code minus this is the stage id the game uses. The
+# web client keys everything off stage ids, so this is how the apworld describes
+# its own logic to the client.
+STAGE_ITEM_OFFSET = 11000
+
+# The two stages with no unlock item: Town is where you start, and Opening Street
+# is the one stage playable with nothing.
+TOWN_STAGE_ID = 0
+OPENING_STREET_STAGE_ID = 1
+
+
+def stage_id(stage_name: str) -> int:
+    """The game's stage id for a stage name, via its unlock item's code."""
+    return item_table[f"Unlock {stage_name}"].code - STAGE_ITEM_OFFSET
+
+
 PROGRESSIVE_SHOP = "Progressive Shop"
 PROGRESSIVE_SHOP_TIERS = 32
 

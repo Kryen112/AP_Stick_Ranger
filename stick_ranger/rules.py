@@ -22,7 +22,14 @@ from BaseClasses import CollectionState, MultiWorld
 from worlds.generic.Rules import set_rule
 
 from .constants import RANGER_CLASSES
-from .items import PROGRESSIVE_SHOP, unlocks_by_region
+from .items import (
+    OPENING_STREET_STAGE_ID,
+    PROGRESSIVE_SHOP,
+    TOWN_STAGE_ID,
+    stage_id,
+    stages,
+    unlocks_by_region,
+)
 from .options import SROptions
 from .shop import shop_table
 
@@ -151,3 +158,54 @@ def set_shop_rules(player: int, multiworld: MultiWorld, options: SROptions) -> N
             multiworld.get_location(location_data["name"], player),
             lambda state, _pl=player, _tier=tier: state.has(PROGRESSIVE_SHOP, _pl, _tier),
         )
+
+
+def logic_description(options: SROptions) -> dict[str, object]:
+    """
+    Everything the web client needs to decide what is in logic, as data.
+
+    The client used to carry its own copy of the tables below, which is how the
+    two drifted apart six different ways before 1.6.0. Shipping this in
+    slot_data instead leaves the client with no logic constants of its own, so
+    there is nothing left to drift.
+
+    Every stage is a game stage id, because that is what the client keys on: an
+    "Unlock <stage>" item's code minus STAGE_ITEM_OFFSET.
+    """
+    gates = []
+    previous_stage: int | None = None
+    for boss_stage, region, previous in BOSS_GATES:
+        key = boss_stage.lower().replace(" ", "_")
+        gates.append({
+            "stage": stage_id(boss_stage),
+            "region": region,
+            "after": stage_id(previous) if previous else None,
+            "stages": getattr(options, f"stages_req_for_{key}").value,
+            "classes": getattr(options, f"classes_req_for_{key}").value,
+        })
+        previous_stage = stage_id(boss_stage)
+
+    # Which boss gate each region sits behind. Grassland sits behind nothing --
+    # its stages need only their own unlock.
+    region_gate: dict[str, int | None] = {region: None for region in unlocks_by_region if region != "Boss"}
+    for region, gating_boss in REGION_GATES:
+        region_gate[region] = stage_id(gating_boss)
+
+    return {
+        "regions": {
+            region: sorted(stage_id(name.removeprefix("Unlock ")) for name in names)
+            for region, names in unlocks_by_region.items()
+            if region != "Boss"
+        },
+        "region_gate": region_gate,
+        "gates": gates,
+        # Volcano and Mountaintop need the last gate plus their own unlock.
+        "boss_rush": [
+            {"stage": stage_id(name), "after": previous_stage} for name in BOSS_RUSH_STAGES
+        ],
+        # Playable with no unlock item at all.
+        "free": [OPENING_STREET_STAGE_ID],
+        "towns": sorted(
+            [TOWN_STAGE_ID] + [stage_id(s.item_name.removeprefix("Unlock ")) for s in stages if s.region == "Town"]
+        ),
+    }

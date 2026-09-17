@@ -5,7 +5,7 @@ from __future__ import annotations
 from BaseClasses import LocationProgressType
 
 from ..constants import CLASS_REQ_OPTIONS, ROLLED_OPTIONS
-from ..items import classes, unlocks_by_region
+from ..items import classes, stage_id, unlocks_by_region
 from ..regions import regions
 from . import StickRangerTestBase
 
@@ -263,3 +263,70 @@ class TestTrackerPassthrough(StickRangerTestBase):
         slot_data = self.multiworld.worlds[self.player].fill_slot_data()
         for name in ROLLED_OPTIONS:
             self.assertIn(name, slot_data, f"{name} is decided at generation but never shipped")
+
+
+class TestLogicDescription(StickRangerTestBase):
+    """
+    The client holds no logic tables of its own -- it evaluates what slot_data
+    describes. These assert the description is derived from the rules rather
+    than being a second statement of them.
+    """
+
+    options = {
+        "ranger_class_randomizer": 1,
+        "min_stages_req_for_castle": 7,
+        "max_stages_req_for_castle": 7,
+    }
+
+    def logic(self) -> dict:
+        return self.multiworld.worlds[self.player].fill_slot_data()["logic"]
+
+    def test_it_survives_the_wire(self) -> None:
+        """slot_data is JSON over a socket; anything exotic would break login."""
+        import json
+
+        self.assertEqual(json.loads(json.dumps(self.logic())), self.logic())
+
+    def test_regions_match_the_unlock_items(self) -> None:
+        described = self.logic()["regions"]
+        for region, names in unlocks_by_region.items():
+            if region == "Boss":
+                continue
+            expected = sorted(stage_id(name.removeprefix("Unlock ")) for name in names)
+            self.assertEqual(described[region], expected, f"{region} drifted")
+
+    def test_gate_chain_matches_the_rules(self) -> None:
+        gates = self.logic()["gates"]
+        self.assertEqual([g["stage"] for g in gates], [10, 29, 42, 63, 88])
+        self.assertEqual([g["after"] for g in gates], [None, 10, 29, 42, 63])
+        self.assertEqual([g["region"] for g in gates],
+                         ["Grassland", "Sea", "Desert", "Ice", "Hell"])
+
+    def test_thresholds_are_the_resolved_ones(self) -> None:
+        """Not the yaml's min/max -- the values the rules actually gate on."""
+        gates = {g["stage"]: g for g in self.logic()["gates"]}
+        self.assertEqual(gates[10]["stages"], self.world.options.stages_req_for_castle.value)
+        self.assertEqual(gates[10]["stages"], 7)
+        for option_name, stage in zip(CLASS_REQ_OPTIONS, [10, 29, 42, 63, 88]):
+            self.assertEqual(
+                gates[stage]["classes"], getattr(self.world.options, option_name).value
+            )
+
+    def test_boss_rush_hangs_off_the_last_gate(self) -> None:
+        self.assertEqual(
+            sorted(self.logic()["boss_rush"], key=lambda b: b["stage"]),
+            [{"stage": 55, "after": 88}, {"stage": 89, "after": 88}],
+        )
+
+    def test_free_and_town_stages(self) -> None:
+        described = self.logic()
+        self.assertEqual(described["free"], [1])            # Opening Street
+        self.assertEqual(described["towns"], [0, 20, 47, 70, 77])
+
+    def test_no_boss_stage_is_counted_by_a_region(self) -> None:
+        described = self.logic()
+        counted = {s for ids in described["regions"].values() for s in ids}
+        for gate in described["gates"]:
+            self.assertNotIn(gate["stage"], counted)
+        for rush in described["boss_rush"]:
+            self.assertNotIn(rush["stage"], counted)
