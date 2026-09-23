@@ -385,6 +385,7 @@ class StickRanger(World):
             "ring_gold",
             "ring_link",
             "ring_link_ratio",
+            "shop_checks",
             "remove_null_compo",
             "death_link",
         )

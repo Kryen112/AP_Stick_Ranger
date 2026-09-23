@@ -5,10 +5,11 @@ from __future__ import annotations
 
 from collections import Counter
 
-from Options import OptionError
+from Options import OptionError, PerGameCommonOptions
 
 from ..constants import GOAL_OPTIONS_MAP
 from ..items import PROGRESSIVE_SHOP, PROGRESSIVE_SHOP_TIERS, SHOP_TOWN_UNLOCKS
+from ..options import SROptions
 from ..shop import shop_table
 from . import StickRangerTestBase
 
@@ -259,3 +260,45 @@ class TestProgressiveShopGatesChecks(SweepTestBase):
         }
         self.world_setup()
         self.assertSeedWorks()
+
+
+
+class TestSlotData(SweepTestBase):
+    """Every option the client acts on has to actually reach it.
+
+    An option can be wired through generation perfectly and still do nothing,
+    because the client only ever sees slot_data. Shop Checks shipped that way in
+    1.7.0: the locations existed, so players saw them in the tracker and filled
+    them by hand, but the client read the absent key as off and never sent one.
+    """
+
+    def shipped_options(self) -> set[str]:
+        """Option names in slot_data that the client is expected to act on.
+
+        The bounds the stage gates are rolled between stay out on purpose; the
+        rolled result ships instead. Archipelago's own common options stay out
+        because the server applies them.
+        """
+        return {
+            name
+            for name in SROptions.type_hints
+            if not name.startswith(("min_stages_req_", "max_stages_req_"))
+            and name not in PerGameCommonOptions.type_hints
+        }
+
+    def test_every_option_reaches_the_client(self) -> None:
+        slot_data = self.world.fill_slot_data()
+        for name in sorted(self.shipped_options()):
+            self.assertIn(name, slot_data, f"{name} never reaches the client")
+
+    def test_shop_checks_ships_when_off(self) -> None:
+        self.assertEqual(self.world.fill_slot_data()["shop_checks"], 0)
+
+
+class TestSlotDataWithShopChecks(SweepTestBase):
+    options = {"shop_checks": 1}
+
+    def test_shop_checks_ships_when_on(self) -> None:
+        """The value has to survive, not just the key: the client treats a
+        missing or zero value as the feature being off."""
+        self.assertEqual(self.world.fill_slot_data()["shop_checks"], 1)
