@@ -567,6 +567,19 @@ class RemoveNullCompo(DefaultOnToggle):
     display_name = "Remove Null Compo"
 
 
+class RemovableCompos(Toggle):
+    """
+    When enabled, a compo already fitted to a weapon can be taken back out by
+    clicking its slot with an empty hand. It returns to your cursor intact.
+
+    In the base game a compo is in for good once fitted, so a good one sunk into
+    a starter weapon is gone. This does not touch the cross that blocks a
+    store-bought slot -- Remove Null Compo covers that one.
+    """
+
+    display_name = "Removable Compos"
+
+
 @dataclass
 class SROptions(PerGameCommonOptions):
     goal: Goal
@@ -611,6 +624,7 @@ class SROptions(PerGameCommonOptions):
     ring_link_ratio: RingLinkRatio
     shop_checks: ShopChecks
     remove_null_compo: RemoveNullCompo
+    removable_compos: RemovableCompos
     death_link: DeathLink
 
 

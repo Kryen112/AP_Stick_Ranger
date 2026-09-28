@@ -414,6 +414,7 @@ class StickRanger(World):
             "ring_link_ratio",
             "shop_checks",
             "remove_null_compo",
+            "removable_compos",
             "death_link",
         )
         # The client evaluates this instead of carrying its own copy of the

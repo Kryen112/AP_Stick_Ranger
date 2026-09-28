@@ -448,3 +448,21 @@ class TestTrapDisguise(SweepTestBase):
             names & {trap.item_name for trap in traps},
             "no traps in the pool, so this proves nothing",
         )
+
+
+class TestRemovableCompos(SweepTestBase):
+    """A client rule about the inventory: it ships, and the fill is untouched."""
+
+    options = {"shuffle_books": 1, "removable_compos": 1}
+
+    def test_the_client_is_told(self) -> None:
+        self.assertEqual(self.world.fill_slot_data()["removable_compos"], 1)
+
+    def test_it_is_off_by_default(self) -> None:
+        """The base game fits a compo for good, so nothing changes unasked."""
+        self.options = {"shuffle_books": 1}
+        self.world_setup()
+        self.assertEqual(self.world.fill_slot_data()["removable_compos"], 0)
+
+    def test_the_seed_still_fills(self) -> None:
+        self.assertSeedWorks()
