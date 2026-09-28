@@ -8,7 +8,7 @@ from collections import Counter
 from Options import OptionError, PerGameCommonOptions
 
 from ..constants import GOAL_OPTIONS_MAP
-from ..items import PROGRESSIVE_SHOP_COUNTS, PROGRESSIVE_SHOPS, SHOP_TOWN_UNLOCKS
+from ..items import PROGRESSIVE_SHOP_COUNTS, PROGRESSIVE_SHOPS, SHOP_TOWN_UNLOCKS, traps
 from ..items import stage_id
 from ..rules import SHOP_TIER_GATES
 from ..options import SROptions
@@ -428,3 +428,23 @@ class TestImportantHintsOnly(SweepTestBase):
         self.options = {"shuffle_books": 1, "shop_checks": 1, "important_hints_only": 0}
         self.world_setup(seed=self.multiworld.seed)
         self.assertEqual(quiet, self.pool_counts())
+
+
+class TestTrapDisguise(SweepTestBase):
+    """Presentation only: it reaches the client and changes nothing about the fill."""
+
+    options = {"shuffle_books": 1, "shop_checks": 1, "traps": 20, "trap_disguise": 1}
+
+    def test_the_client_is_told(self) -> None:
+        self.assertEqual(self.world.fill_slot_data()["trap_disguise"], 1)
+
+    def test_the_seed_still_fills(self) -> None:
+        self.assertSeedWorks()
+
+    def test_traps_keep_their_real_names(self) -> None:
+        """The disguise is worn in the client, so the pool is untouched."""
+        names = {item.name for item in self.multiworld.itempool}
+        self.assertTrue(
+            names & {trap.item_name for trap in traps},
+            "no traps in the pool, so this proves nothing",
+        )

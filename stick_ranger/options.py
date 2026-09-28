@@ -403,6 +403,21 @@ class ImportantHintsOnly(Toggle):
     display_name = "Important Hints Only"
 
 
+class TrapDisguise(Toggle):
+    """
+    When enabled, a trap waiting in a shop or a book wears the name of some
+    other item in the room, misspelled: "Unlock Laek", "Progressive Eisland
+    Shoppe", "Mothwing Cloack".
+
+    It reads as a real item at a glance and gives itself away only if you look
+    properly, in the spirit of Ocarina of Time's ice traps. This only changes
+    what you are shown -- anyone else scouting that location still sees the trap
+    for what it is.
+    """
+
+    display_name = "Trap Disguise"
+
+
 class BookCostRandomizer(Choice):
     """
     Randomizes the costs of Books.
@@ -584,6 +599,7 @@ class SROptions(PerGameCommonOptions):
     drop_multiplier: DropMultiplier
     shop_hints: ShopHints
     important_hints_only: ImportantHintsOnly
+    trap_disguise: TrapDisguise
     randomize_book_costs: BookCostRandomizer
     traps: Traps
     free_respec: FreeRespec
