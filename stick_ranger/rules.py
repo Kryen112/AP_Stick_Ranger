@@ -53,6 +53,30 @@ BOSS_GATES: tuple[tuple[str, str, str | None], ...] = (
 # Boss rush stages, reachable once the Hell Castle gate is open.
 BOSS_RUSH_STAGES: tuple[str, ...] = ("Volcano", "Mountaintop")
 
+# Shop stock is not free. The game opens a row once you have beaten a stage that
+# stocks it (Shop_Reqs in game.js), and the first stage stocking each tier falls
+# in these regions -- so a tier is buyable exactly when its region is reachable:
+#
+#     tiers  0-8  Grassland      tiers 18-22  Ice   (behind Pyramid)
+#     tiers  9-13 Sea   (behind Castle)      tiers 23-32  Hell  (behind Ice Castle)
+#     tiers 14-17 Desert (behind Submarine Shrine)
+#
+# Highest threshold first, so the first match wins.
+SHOP_TIER_GATES: tuple[tuple[int, str], ...] = (
+    (23, "Ice Castle"),
+    (18, "Pyramid"),
+    (14, "Submarine Shrine"),
+    (9, "Castle"),
+)
+
+
+def shop_tier_gate(tier: int, gates: dict[str, Predicate]) -> Predicate | None:
+    """The boss gate a shop tier sits behind, or None for the opening rows."""
+    for threshold, boss_stage in SHOP_TIER_GATES:
+        if tier >= threshold:
+            return gates[boss_stage]
+    return None
+
 
 def class_count(state: CollectionState, player: int) -> int:
     """
@@ -94,7 +118,9 @@ def boss_gate(
     return rule
 
 
-def set_region_rules(player: int, multiworld: MultiWorld, options: SROptions) -> None:
+def set_region_rules(
+    player: int, multiworld: MultiWorld, options: SROptions
+) -> dict[str, Predicate]:
     """
     Put an access rule on every stage entrance past Opening Street.
 
@@ -137,24 +163,42 @@ def set_region_rules(player: int, multiworld: MultiWorld, options: SROptions) ->
                 ),
             )
 
+    return gates
 
-def set_shop_rules(player: int, multiworld: MultiWorld, options: SROptions) -> None:
+
+def set_shop_rules(
+    player: int,
+    multiworld: MultiWorld,
+    options: SROptions,
+    gates: dict[str, Predicate],
+) -> None:
     """
     Gate each shop check on the row it sits in.
 
-    Only meaningful with Progressive Shop on -- otherwise the stock widens as
-    stages are beaten, and reaching the town is the whole requirement. Gold is
-    never a rule: enemies drop it forever, so any price is reachable.
+    Two things hold a row back. The shop only stocks it once the world has
+    opened far enough (SHOP_TIER_GATES), and with Progressive Shop on you also
+    need that many Progressive Shop items. Reaching the town is never the whole
+    requirement: without the tier gate the fill was free to treat all 264 Town
+    checks as open from the start, which is how a seed ends up handing out
+    nothing but Progressive Shop until the shop finally coughs up a stage.
+
+    Gold is never a rule: enemies drop it forever, so any price is reachable.
     """
-    if not options.progressive_shop:
-        return
     for location_data in shop_table.values():
         tier = location_data.get("tier", 0)
-        if not tier:
+        clauses: list[Predicate] = []
+        if options.progressive_shop and tier:
+            clauses.append(
+                lambda state, _pl=player, _tier=tier: state.has(PROGRESSIVE_SHOP, _pl, _tier)
+            )
+        gate = shop_tier_gate(tier, gates)
+        if gate is not None:
+            clauses.append(gate)
+        if not clauses:
             continue
         set_rule(
             multiworld.get_location(location_data["name"], player),
-            lambda state, _pl=player, _tier=tier: state.has(PROGRESSIVE_SHOP, _pl, _tier),
+            lambda state, _clauses=tuple(clauses): all(clause(state) for clause in _clauses),
         )
 
 

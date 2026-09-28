@@ -265,9 +265,9 @@ class StickRanger(World):
         self.multiworld.completion_condition[self.player] = lambda state: all(
             state.can_reach_location(f"{goal}: Exit", self.player) for goal in goal_exits
         )
-        set_region_rules(self.player, self.multiworld, self.options)
+        gates = set_region_rules(self.player, self.multiworld, self.options)
         if self.options.shop_checks:
-            set_shop_rules(self.player, self.multiworld, self.options)
+            set_shop_rules(self.player, self.multiworld, self.options, gates)
 
     # ------------------------------------------------------------------ items
 

@@ -10,6 +10,7 @@ from Options import OptionError, PerGameCommonOptions
 from ..constants import GOAL_OPTIONS_MAP
 from ..items import PROGRESSIVE_SHOP, PROGRESSIVE_SHOP_TIERS, SHOP_TOWN_UNLOCKS
 from ..options import SROptions
+from ..rules import SHOP_TIER_GATES
 from ..shop import shop_table
 from . import StickRangerTestBase
 
@@ -227,15 +228,21 @@ class TestShopChecks(SweepTestBase):
 
 
 class TestProgressiveShopGatesChecks(SweepTestBase):
+    TOWNS = ("Village", "Resort", "Island")
+
     def test_a_late_row_needs_its_progressive_items(self) -> None:
+        """A tier below the first boss gate needs only the Progressive Shop items."""
         self.options = {"shop_checks": 1, "progressive_shop": 1, "shuffle_books": 1}
         self.world_setup()
-        late = max(shop_table.values(), key=lambda e: e.get("tier", 0))
+        gated_at = min(threshold for threshold, _ in SHOP_TIER_GATES)
+        late = max(
+            (e for e in shop_table.values() if 0 < e.get("tier", 0) < gated_at),
+            key=lambda e: e["tier"],
+        )
         tier = late["tier"]
-        self.assertGreater(tier, 0)
 
         location = self.multiworld.get_location(late["name"], self.player)
-        state = self.state_with(*[f"Unlock {r}" for r in ("Village", "Resort", "Island")])
+        state = self.state_with(*[f"Unlock {r}" for r in self.TOWNS])
         for held in range(tier):
             self.assertFalse(
                 location.can_reach(state),
@@ -243,6 +250,43 @@ class TestProgressiveShopGatesChecks(SweepTestBase):
             )
             state.collect(self.world.create_item(PROGRESSIVE_SHOP), prevent_sweep=True)
         self.assertTrue(location.can_reach(state))
+
+    def test_a_deep_row_needs_the_world_open_too(self) -> None:
+        """
+        The shop only stocks a deep row once the world has opened that far, so
+        every Progressive Shop item in the pool is still not enough on its own.
+
+        Without this the fill treats all 264 Town checks as open from the start
+        and is free to bury the stage unlocks behind a wall of Progressive Shop.
+        """
+        self.options = {"shop_checks": 1, "progressive_shop": 1, "shuffle_books": 1}
+        self.world_setup()
+        deepest = max(shop_table.values(), key=lambda e: e.get("tier", 0))
+        location = self.multiworld.get_location(deepest["name"], self.player)
+
+        state = self.state_with(*[f"Unlock {r}" for r in self.TOWNS])
+        for _ in range(PROGRESSIVE_SHOP_TIERS):
+            state.collect(self.world.create_item(PROGRESSIVE_SHOP), prevent_sweep=True)
+        self.assertFalse(
+            location.can_reach(state),
+            f"{deepest['name']} (tier {deepest['tier']}) is reachable with no stage progress",
+        )
+        self.assertTrue(location.can_reach(self.multiworld.get_all_state(False)))
+
+    def test_shop_tiers_are_gated_without_progressive_shop(self) -> None:
+        """
+        With Progressive Shop off the game still widens the stock as stages are
+        beaten, so the tier gates have to apply on their own.
+        """
+        self.options = {"shop_checks": 1, "shuffle_books": 1}
+        self.world_setup()
+        deepest = max(shop_table.values(), key=lambda e: e.get("tier", 0))
+        location = self.multiworld.get_location(deepest["name"], self.player)
+        state = self.state_with(*[f"Unlock {r}" for r in self.TOWNS])
+        self.assertFalse(
+            location.can_reach(state),
+            f"{deepest['name']} is reachable the moment you can walk into the town",
+        )
 
     def test_progressive_shop_is_progression_with_checks_on(self) -> None:
         self.options = {"shop_checks": 1, "progressive_shop": 1, "shuffle_books": 1}
