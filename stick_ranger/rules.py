@@ -252,4 +252,10 @@ def logic_description(options: SROptions) -> dict[str, object]:
         # Playable with no unlock item at all. Which stages are towns is map
         # geometry rather than a rule, so the client owns that list itself.
         "free": [OPENING_STREET_STAGE_ID],
+        # Shop tier -> the boss gate that stocks it, highest threshold first.
+        # Only Enforce Shop Logic acts on this; without it the shop sells
+        # whatever it has stocked and logic simply does not count on it.
+        "shop_gates": [
+            [threshold, stage_id(boss_stage)] for threshold, boss_stage in SHOP_TIER_GATES
+        ],
     }

@@ -406,6 +406,7 @@ class StickRanger(World):
             "free_respec",
             "progressive_shop",
             "enforce_logic",
+            "enforce_shop_logic",
             "ring_gold",
             "ring_link",
             "ring_link_ratio",

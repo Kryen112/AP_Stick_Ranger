@@ -9,6 +9,7 @@ from Options import OptionError, PerGameCommonOptions
 
 from ..constants import GOAL_OPTIONS_MAP
 from ..items import PROGRESSIVE_SHOP_COUNTS, PROGRESSIVE_SHOPS, SHOP_TOWN_UNLOCKS
+from ..items import stage_id
 from ..rules import SHOP_TIER_GATES
 from ..options import SROptions
 from ..shop import shop_table
@@ -378,3 +379,33 @@ class TestSlotDataWithShopChecks(SweepTestBase):
         missing or zero value as the feature being off."""
         self.assertEqual(self.world.fill_slot_data()["shop_checks"], 1)
 
+
+class TestEnforceShopLogic(SweepTestBase):
+    """The option only changes what the client allows, never what fills."""
+
+    options = {"shop_checks": 1, "progressive_shop": 1, "shuffle_books": 1, "enforce_shop_logic": 1}
+
+    def test_the_client_is_told(self) -> None:
+        self.assertEqual(self.world.fill_slot_data()["enforce_shop_logic"], 1)
+
+    def test_the_seed_still_fills(self) -> None:
+        self.assertSeedWorks()
+
+    def test_shop_gates_name_a_real_boss_stage(self) -> None:
+        """Each threshold points at a gate the client can actually evaluate."""
+        logic = self.world.fill_slot_data()["logic"]
+        gate_stages = {gate["stage"] for gate in logic["gates"]}
+        self.assertEqual(len(logic["shop_gates"]), len(SHOP_TIER_GATES))
+        for threshold, stage in logic["shop_gates"]:
+            self.assertIn(stage, gate_stages, f"tier {threshold} points at no known gate")
+
+    def test_shop_gates_are_highest_first(self) -> None:
+        """The client returns on the first match, so order decides the answer."""
+        thresholds = [threshold for threshold, _ in self.world.fill_slot_data()["logic"]["shop_gates"]]
+        self.assertEqual(thresholds, sorted(thresholds, reverse=True))
+
+    def test_gates_match_the_rules(self) -> None:
+        """What the client enforces is what set_shop_rules used."""
+        shipped = {t: s for t, s in self.world.fill_slot_data()["logic"]["shop_gates"]}
+        expected = {t: stage_id(boss) for t, boss in SHOP_TIER_GATES}
+        self.assertEqual(shipped, expected)

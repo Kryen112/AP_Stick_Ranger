@@ -509,6 +509,18 @@ class ProgressiveShop(Toggle):
     display_name = "Progressive Shop"
 
 
+class EnforceShopLogic(Toggle):
+    """
+    When enabled, a shop item that Archipelago does not consider reachable yet
+    cannot be bought. It is greyed out until the world has opened far enough.
+
+    This is the shop's half of Enforce Logic. Without it the shop still sells
+    anything it has stocked -- logic simply does not count on you buying it.
+    """
+
+    display_name = "Enforce Shop Logic"
+
+
 class FreeRespec(Toggle):
     """
     When enabled, respeccing at the Forget Tree is always free.
@@ -563,6 +575,7 @@ class SROptions(PerGameCommonOptions):
     free_respec: FreeRespec
     progressive_shop: ProgressiveShop
     enforce_logic: EnforceLogic
+    enforce_shop_logic: EnforceShopLogic
     ring_gold: RingGold
     ring_link: RingLink
     ring_link_ratio: RingLinkRatio
