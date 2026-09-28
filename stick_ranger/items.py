@@ -749,11 +749,42 @@ def stage_id(stage_name: str) -> int:
     return item_table[f"Unlock {stage_name}"].code - STAGE_ITEM_OFFSET
 
 
-PROGRESSIVE_SHOP = "Progressive Shop"
-PROGRESSIVE_SHOP_TIERS = 32
+# One progressive track per shop, so opening Island's stock no longer opens
+# Town's for free.
+PROGRESSIVE_SHOPS: dict[str, str] = {
+    "Town": "Progressive Town Shop",
+    "Village": "Progressive Village Shop",
+    "Resort": "Progressive Resort Shop",
+    "Island": "Progressive Island Shop",
+}
+
+# How each shop opens. STEPS is how many stock levels it has, taken from its
+# deepest column, and FIRST is what row 0 costs: Town is where you start, so it
+# opens its first row for free, while Village, Resort and Island stock nothing
+# at all until their own first item arrives.
+# A row needs floor(row * steps / column length) + first of that shop's item.
+SHOP_PROGRESSION_STEPS: dict[str, int] = {
+    "Town": 33,
+    "Village": 15,
+    "Resort": 9,
+    "Island": 33,
+}
+SHOP_PROGRESSION_FIRST: dict[str, int] = {
+    "Town": 0,
+    "Village": 1,
+    "Resort": 1,
+    "Island": 1,
+}
+
+# Enough of each to open that shop's deepest column.
+PROGRESSIVE_SHOP_COUNTS: dict[str, int] = {
+    town: SHOP_PROGRESSION_STEPS[town] - 1 + SHOP_PROGRESSION_FIRST[town]
+    for town in PROGRESSIVE_SHOPS
+}
 
 progressive_shop: list[ProgressiveShopData] = [
-    ProgressiveShopData(15000, PROGRESSIVE_SHOP, ItemClassification.useful),
+    ProgressiveShopData(15000 + offset, name, ItemClassification.useful)
+    for offset, name in enumerate(PROGRESSIVE_SHOPS.values())
 ]
 
 ItemData = StagesData | FillerData | TrapItemData | RangerClassData | ProgressiveShopData
@@ -777,7 +808,7 @@ item_name_groups: dict[str, set[str]] = {
     "Town Unlocks": {stage.item_name for stage in stages if stage.region == "Town"},
     "Ranger Classes": {ranger_class.item_name for ranger_class in classes},
     "Traps": {trap.item_name for trap in traps},
-    "Shop": {PROGRESSIVE_SHOP},
+    "Shop": set(PROGRESSIVE_SHOPS.values()),
     **{
         f"{region} Unlocks": set(names)
         for region, names in unlocks_by_region.items()

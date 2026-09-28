@@ -8,9 +8,9 @@ from collections import Counter
 from Options import OptionError, PerGameCommonOptions
 
 from ..constants import GOAL_OPTIONS_MAP
-from ..items import PROGRESSIVE_SHOP, PROGRESSIVE_SHOP_TIERS, SHOP_TOWN_UNLOCKS
-from ..options import SROptions
+from ..items import PROGRESSIVE_SHOP_COUNTS, PROGRESSIVE_SHOPS, SHOP_TOWN_UNLOCKS
 from ..rules import SHOP_TIER_GATES
+from ..options import SROptions
 from ..shop import shop_table
 from . import StickRangerTestBase
 
@@ -158,19 +158,23 @@ class TestMaximumStageRequirements(SweepTestBase):
 
 
 class TestProgressiveShop(SweepTestBase):
-    def test_one_item_per_shop_tier(self) -> None:
+    def test_one_track_per_shop(self) -> None:
+        """Each shop gets enough of its own item to open its deepest column."""
         self.options = {"progressive_shop": 1, "shuffle_books": 1, "shuffle_enemies": 3}
         self.world_setup()
-        self.assertEqual(self.pool_counts()[PROGRESSIVE_SHOP], PROGRESSIVE_SHOP_TIERS)
+        counts = self.pool_counts()
+        for town, name in PROGRESSIVE_SHOPS.items():
+            self.assertEqual(counts[name], PROGRESSIVE_SHOP_COUNTS[town], name)
         self.assertSeedWorks()
 
     def test_absent_when_the_option_is_off(self) -> None:
         self.options = {"progressive_shop": 0}
         self.world_setup()
-        self.assertEqual(self.pool_counts()[PROGRESSIVE_SHOP], 0)
+        for name in PROGRESSIVE_SHOPS.values():
+            self.assertEqual(self.pool_counts()[name], 0, name)
 
     def test_fits_the_smallest_pool(self) -> None:
-        """33 extra items still has to fit a books-only seed."""
+        """89 extra items still has to fit a books-only seed."""
         self.options = {"progressive_shop": 1, "shuffle_books": 1, "shuffle_enemies": 0}
         self.world_setup()
         self.assertSeedWorks()
@@ -230,7 +234,7 @@ class TestShopChecks(SweepTestBase):
 class TestProgressiveShopGatesChecks(SweepTestBase):
     TOWNS = ("Village", "Resort", "Island")
 
-    def test_a_late_row_needs_its_progressive_items(self) -> None:
+    def test_a_row_needs_its_progressive_items(self) -> None:
         """A tier below the first boss gate needs only the Progressive Shop items."""
         self.options = {"shop_checks": 1, "progressive_shop": 1, "shuffle_books": 1}
         self.world_setup()
@@ -239,16 +243,16 @@ class TestProgressiveShopGatesChecks(SweepTestBase):
             (e for e in shop_table.values() if 0 < e.get("tier", 0) < gated_at),
             key=lambda e: e["tier"],
         )
-        tier = late["tier"]
+        item = PROGRESSIVE_SHOPS[late["region"]]
 
         location = self.multiworld.get_location(late["name"], self.player)
         state = self.state_with(*[f"Unlock {r}" for r in self.TOWNS])
-        for held in range(tier):
+        for held in range(late["req"]):
             self.assertFalse(
                 location.can_reach(state),
-                f"{late['name']} (tier {tier}) reachable with {held} Progressive Shop",
+                f"{late['name']} (req {late['req']}) reachable with {held} {item}",
             )
-            state.collect(self.world.create_item(PROGRESSIVE_SHOP), prevent_sweep=True)
+            state.collect(self.world.create_item(item), prevent_sweep=True)
         self.assertTrue(location.can_reach(state))
 
     def test_a_deep_row_needs_the_world_open_too(self) -> None:
@@ -265,13 +269,39 @@ class TestProgressiveShopGatesChecks(SweepTestBase):
         location = self.multiworld.get_location(deepest["name"], self.player)
 
         state = self.state_with(*[f"Unlock {r}" for r in self.TOWNS])
-        for _ in range(PROGRESSIVE_SHOP_TIERS):
-            state.collect(self.world.create_item(PROGRESSIVE_SHOP), prevent_sweep=True)
+        for town, name in PROGRESSIVE_SHOPS.items():
+            for _ in range(PROGRESSIVE_SHOP_COUNTS[town]):
+                state.collect(self.world.create_item(name), prevent_sweep=True)
         self.assertFalse(
             location.can_reach(state),
             f"{deepest['name']} (tier {deepest['tier']}) is reachable with no stage progress",
         )
         self.assertTrue(location.can_reach(self.multiworld.get_all_state(False)))
+
+    def test_town_opens_its_first_row_for_free(self) -> None:
+        """Town is the one shop that starts with something in stock."""
+        self.options = {"shop_checks": 1, "progressive_shop": 1, "shuffle_books": 1}
+        self.world_setup()
+        opening = next(e for e in shop_table.values() if e["region"] == "Town" and e["req"] == 0)
+        location = self.multiworld.get_location(opening["name"], self.player)
+        self.assertTrue(location.can_reach(self.state_with()))
+
+    def test_the_other_shops_start_empty(self) -> None:
+        """Village, Resort and Island stock nothing until their first item arrives."""
+        self.options = {"shop_checks": 1, "progressive_shop": 1, "shuffle_books": 1}
+        self.world_setup()
+        for region in ("Village", "Resort", "Island"):
+            cheapest = min(
+                (e for e in shop_table.values() if e["region"] == region),
+                key=lambda e: e["req"],
+            )
+            self.assertGreater(cheapest["req"], 0, f"{region} still opens for free")
+            location = self.multiworld.get_location(cheapest["name"], self.player)
+            state = self.state_with(*[f"Unlock {r}" for r in self.TOWNS])
+            self.assertFalse(
+                location.can_reach(state),
+                f"{cheapest['name']} is reachable before any {PROGRESSIVE_SHOPS[region]}",
+            )
 
     def test_shop_tiers_are_gated_without_progressive_shop(self) -> None:
         """
@@ -291,8 +321,9 @@ class TestProgressiveShopGatesChecks(SweepTestBase):
     def test_progressive_shop_is_progression_with_checks_on(self) -> None:
         self.options = {"shop_checks": 1, "progressive_shop": 1, "shuffle_books": 1}
         self.world_setup()
-        item = next(i for i in self.multiworld.itempool if i.name == PROGRESSIVE_SHOP)
-        self.assertTrue(item.advancement)
+        for name in PROGRESSIVE_SHOPS.values():
+            item = next(i for i in self.multiworld.itempool if i.name == name)
+            self.assertTrue(item.advancement, name)
 
     def test_both_options_together_fill(self) -> None:
         self.options = {
@@ -346,3 +377,4 @@ class TestSlotDataWithShopChecks(SweepTestBase):
         """The value has to survive, not just the key: the client treats a
         missing or zero value as the feature being off."""
         self.assertEqual(self.world.fill_slot_data()["shop_checks"], 1)
+

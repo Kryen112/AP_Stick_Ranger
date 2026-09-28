@@ -496,11 +496,14 @@ class ShopChecks(Toggle):
 
 class ProgressiveShop(Toggle):
     """
-    When enabled, the shop's stock is unlocked by Progressive Shop items instead
-    of by completing stages.
+    When enabled, each town's shop stock is unlocked by its own Progressive
+    Shop items instead of by completing stages.
 
-    There are 32 of them, one per row of the shop past the first, and they apply
-    to every town's shop rather than only the first one.
+    Every shop has its own track, so opening Island's stock does not open
+    Town's: 32 Progressive Town Shop, 15 Village, 9 Resort and 33 Island. Town
+    keeps its first row stocked because that is where you start; Village,
+    Resort and Island hold nothing at all until their own first item arrives,
+    and say so.
     """
 
     display_name = "Progressive Shop"

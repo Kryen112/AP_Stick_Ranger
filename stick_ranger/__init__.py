@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import zip_longest
 from typing import Any, Callable
 
 from BaseClasses import (
@@ -31,8 +32,10 @@ from .constants import (
     TRAP_SHARE_BY_OPTION,
 )
 from .items import (
-    PROGRESSIVE_SHOP,
-    PROGRESSIVE_SHOP_TIERS,
+    PROGRESSIVE_SHOPS,
+    PROGRESSIVE_SHOP_COUNTS,
+    SHOP_PROGRESSION_FIRST,
+    SHOP_PROGRESSION_STEPS,
     SHOP_TOWN_UNLOCKS,
     SRItem,
     filler,
@@ -285,7 +288,7 @@ class StickRanger(World):
         """
         if not self.options.shop_checks:
             return default
-        if name == PROGRESSIVE_SHOP or name in SHOP_TOWN_UNLOCKS.values():
+        if name in PROGRESSIVE_SHOPS.values() or name in SHOP_TOWN_UNLOCKS.values():
             return ItemClassification.progression
         return default
 
@@ -318,7 +321,8 @@ class StickRanger(World):
 
         if self.options.progressive_shop:
             itempool.extend(
-                self.create_item(PROGRESSIVE_SHOP) for _ in range(PROGRESSIVE_SHOP_TIERS)
+                self.create_item(name)
+                for name in self._progressive_shop_items(self.location_count - len(itempool))
             )
 
         itempool.extend(self._create_traps(self.location_count - len(itempool)))
@@ -347,6 +351,26 @@ class StickRanger(World):
         location: Location = self.get_location(self.random.choice(candidates))
         location.place_locked_item(self.create_item(self.starter_item_name))
         self.location_count -= 1
+
+    def _progressive_shop_items(self, room: int) -> list[str]:
+        """
+        One track per shop, trimmed to whatever the seed has room for.
+
+        A books-only seed has 170 locations and the four tracks are 89 items, so
+        they do not always fit. Shop Checks is what makes them progression, and
+        it brings 462 locations of its own, so there is always room when
+        something actually depends on them -- without it they only widen the
+        stock and the deepest rows can go unopened. Trimming round-robin takes
+        the loss off the bottom of every shop rather than dropping one entirely.
+        """
+        tracks = [
+            [name] * PROGRESSIVE_SHOP_COUNTS[town] for town, name in PROGRESSIVE_SHOPS.items()
+        ]
+        wanted = [name for step in zip_longest(*tracks) for name in step if name]
+        if len(wanted) <= room:
+            return wanted
+        assert not self.options.shop_checks, "shop checks must leave room for their own gates"
+        return wanted[:room]
 
     def _create_traps(self, open_locations: int) -> list[SRItem]:
         if not self.options.traps:
@@ -392,6 +416,14 @@ class StickRanger(World):
         # The client evaluates this instead of carrying its own copy of the
         # rules, so the two cannot drift apart.
         slot_data["logic"] = logic_description(self.options)
+        # How each shop opens, indexed by the game's town order. The client used
+        # to carry these numbers itself; shipping them keeps the stock the
+        # player sees and the rules the fill used from drifting apart.
+        slot_data["shop_progression"] = {
+            "ids": [item_table[name].code for name in PROGRESSIVE_SHOPS.values()],
+            "steps": [SHOP_PROGRESSION_STEPS[town] for town in PROGRESSIVE_SHOPS],
+            "first": [SHOP_PROGRESSION_FIRST[town] for town in PROGRESSIVE_SHOPS],
+        }
         slot_data["player_name"] = self.player_name
         slot_data["player_id"] = self.player
         return slot_data

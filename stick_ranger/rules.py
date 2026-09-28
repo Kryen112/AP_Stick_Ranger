@@ -24,7 +24,7 @@ from worlds.generic.Rules import set_rule
 from .constants import RANGER_CLASSES
 from .items import (
     OPENING_STREET_STAGE_ID,
-    PROGRESSIVE_SHOP,
+    PROGRESSIVE_SHOPS,
     stage_id,
     unlocks_by_region,
 )
@@ -177,7 +177,8 @@ def set_shop_rules(
 
     Two things hold a row back. The shop only stocks it once the world has
     opened far enough (SHOP_TIER_GATES), and with Progressive Shop on you also
-    need that many Progressive Shop items. Reaching the town is never the whole
+    need that many Progressive items for that shop -- each town has its own
+    track, so opening Island does not open Town. Reaching the town is never the whole
     requirement: without the tier gate the fill was free to treat all 264 Town
     checks as open from the start, which is how a seed ends up handing out
     nothing but Progressive Shop until the shop finally coughs up a stage.
@@ -187,9 +188,12 @@ def set_shop_rules(
     for location_data in shop_table.values():
         tier = location_data.get("tier", 0)
         clauses: list[Predicate] = []
-        if options.progressive_shop and tier:
+        req = location_data.get("req", 0)
+        if options.progressive_shop and req:
             clauses.append(
-                lambda state, _pl=player, _tier=tier: state.has(PROGRESSIVE_SHOP, _pl, _tier)
+                lambda state, _pl=player, _req=req, _item=PROGRESSIVE_SHOPS[
+                    location_data["region"]
+                ]: state.has(_item, _pl, _req)
             )
         gate = shop_tier_gate(tier, gates)
         if gate is not None:
