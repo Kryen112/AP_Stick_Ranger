@@ -390,6 +390,19 @@ class ShopHints(DefaultOnToggle):
     display_name = "Shop Hints"
 
 
+class ImportantHintsOnly(Toggle):
+    """
+    When enabled, the shop and the Book shop only send hints to the room for
+    progression and trap items, and stay quiet about filler and useful ones.
+
+    You still see everything yourself; this only decides what the rest of the
+    room is told. A seed with Shop Checks has 462 shop items, and hinting all of
+    them buries every other player's hints.
+    """
+
+    display_name = "Important Hints Only"
+
+
 class BookCostRandomizer(Choice):
     """
     Randomizes the costs of Books.
@@ -570,6 +583,7 @@ class SROptions(PerGameCommonOptions):
     xp_multiplier: XPMultiplier
     drop_multiplier: DropMultiplier
     shop_hints: ShopHints
+    important_hints_only: ImportantHintsOnly
     randomize_book_costs: BookCostRandomizer
     traps: Traps
     free_respec: FreeRespec

@@ -409,3 +409,22 @@ class TestEnforceShopLogic(SweepTestBase):
         shipped = {t: s for t, s in self.world.fill_slot_data()["logic"]["shop_gates"]}
         expected = {t: stage_id(boss) for t, boss in SHOP_TIER_GATES}
         self.assertEqual(shipped, expected)
+
+
+class TestImportantHintsOnly(SweepTestBase):
+    """Purely a client instruction: it must reach the client and change nothing else."""
+
+    options = {"shuffle_books": 1, "shop_checks": 1, "important_hints_only": 1}
+
+    def test_the_client_is_told(self) -> None:
+        self.assertEqual(self.world.fill_slot_data()["important_hints_only"], 1)
+
+    def test_the_seed_still_fills(self) -> None:
+        self.assertSeedWorks()
+
+    def test_it_does_not_touch_the_item_pool(self) -> None:
+        """Hint filtering is presentation, so the seed must be identical without it."""
+        quiet = self.pool_counts()
+        self.options = {"shuffle_books": 1, "shop_checks": 1, "important_hints_only": 0}
+        self.world_setup(seed=self.multiworld.seed)
+        self.assertEqual(quiet, self.pool_counts())

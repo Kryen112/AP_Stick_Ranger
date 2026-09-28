@@ -402,6 +402,7 @@ class StickRanger(World):
             "drop_multiplier",
             "randomize_book_costs",
             "shop_hints",
+            "important_hints_only",
             "traps",
             "free_respec",
             "progressive_shop",
