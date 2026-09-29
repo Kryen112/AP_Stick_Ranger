@@ -13,6 +13,7 @@ from BaseClasses import (
 )
 from Options import OptionError
 from worlds.AutoWorld import WebWorld, World
+from worlds.LauncherComponents import Component, Type, components
 
 from .constants import (
     CLASS_REQ_OPTIONS,
@@ -56,7 +57,20 @@ from .locations import (
 from .options import SR_OPTION_GROUPS, SROptions
 from .shop import shop_table
 from .regions import TOWN_REGIONS, regions
+from .client import launch_client
 from .rules import logic_description, set_region_rules, set_shop_rules
+
+components.append(
+    Component(
+        "Stick Ranger Client",
+        func=launch_client,
+        component_type=Type.CLIENT,
+        game_name="Stick Ranger",
+        supports_uri=True,
+        description="Open the Stick Ranger website in your browser; "
+        "from a room page, the connect form is filled in for you.",
+    )
+)
 
 WORLD_MAP = "World Map"
 

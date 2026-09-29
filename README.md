@@ -26,7 +26,8 @@
 -   Generate a yaml or download the one in here
 -   Customize the yaml and put it in the /players folder inside Archipelago
 -   Generate a game
--   Connect to and play the game [here](https://kryen112.github.io/)
+-   Connect to and play the game [here](https://kryen112.github.io/), or click your name on the room page
+    to open it with the host, port and slot name already filled in
 
 ## AP Integration
 
