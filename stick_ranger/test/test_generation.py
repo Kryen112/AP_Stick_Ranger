@@ -536,3 +536,16 @@ class TestProgressiveShopCounts(SweepTestBase):
     def test_no_track_is_empty(self) -> None:
         for town, count in PROGRESSIVE_SHOP_COUNTS.items():
             self.assertGreater(count, 0, f"{town} would never open past its first row")
+
+
+
+class TestBookCostTenth(SweepTestBase):
+    """The cheap mode is a Book Cost Randomizer value, not an option of its own."""
+
+    options = {"shuffle_books": 1, "randomize_book_costs": 4}
+
+    def test_the_client_is_told_which_mode(self) -> None:
+        self.assertEqual(self.world.fill_slot_data()["randomize_book_costs"], 4)
+
+    def test_the_seed_still_fills(self) -> None:
+        self.assertSeedWorks()

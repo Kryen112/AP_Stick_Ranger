@@ -426,6 +426,7 @@ class BookCostRandomizer(Choice):
     random_balanced:          Costs are randomized, but still balanced.
     random_extreme:           Costs can range between 1-99999.
     random_extreme_expensive: Costs can range between 1-999999. (Not recommended)
+    vanilla_tenth:            Costs are vanilla divided by 10.
     """
 
     display_name = "Book Cost Randomizer"
@@ -433,6 +434,7 @@ class BookCostRandomizer(Choice):
     option_random_balanced = 1
     option_random_extreme = 2
     option_random_extreme_expensive = 3
+    option_vanilla_tenth = 4
     default = 0
 
 
