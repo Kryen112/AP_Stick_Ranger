@@ -8,7 +8,13 @@ from collections import Counter
 from Options import OptionError, PerGameCommonOptions
 
 from ..constants import GOAL_OPTIONS_MAP
-from ..items import PROGRESSIVE_SHOP_COUNTS, PROGRESSIVE_SHOPS, SHOP_TOWN_UNLOCKS, traps
+from ..items import (
+    PROGRESSIVE_SHOP_COUNTS,
+    PROGRESSIVE_SHOPS,
+    SHOP_PROGRESSION_STEPS,
+    SHOP_TOWN_UNLOCKS,
+    traps,
+)
 from ..items import stage_id
 from ..rules import SHOP_TIER_GATES
 from ..options import SROptions
@@ -493,3 +499,40 @@ class TestShopLocationNames(SweepTestBase):
         """Renaming breaks generation outright if anything still used the old name."""
         for entry in shop_table.values():
             self.multiworld.get_location(entry["name"], self.player)
+
+
+class TestProgressiveShopCounts(SweepTestBase):
+    """Each track is as long as its shop needs and no longer."""
+
+    options = {"shop_checks": 1, "progressive_shop": 1, "shuffle_books": 1}
+
+    def test_every_check_is_reachable_with_the_pool(self) -> None:
+        """A check asking for more items than exist could never be bought."""
+        for entry in shop_table.values():
+            self.assertLessEqual(
+                entry["req"],
+                PROGRESSIVE_SHOP_COUNTS[entry["region"]],
+                f"{entry['name']} needs {entry['req']} of a track only {PROGRESSIVE_SHOP_COUNTS[entry['region']]} long",
+            )
+
+    def test_resort_opens_on_one_item(self) -> None:
+        """
+        Resort stocks two items per column and the grid shows both on its first
+        row, so the shop has a single stock level. Sizing the track to the nine
+        deep columns instead put eight items in the pool that opened nothing.
+        """
+        self.assertEqual(PROGRESSIVE_SHOP_COUNTS["Resort"], 1)
+        self.assertEqual(SHOP_PROGRESSION_STEPS["Resort"], 1)
+
+    def test_a_track_covers_its_own_deepest_check(self) -> None:
+        """The pool has to be able to reach the last row that holds a check."""
+        for town, count in PROGRESSIVE_SHOP_COUNTS.items():
+            deepest = max(
+                (e["req"] for e in shop_table.values() if e["region"] == town),
+                default=0,
+            )
+            self.assertGreaterEqual(count, deepest, f"{town} cannot reach its own deepest check")
+
+    def test_no_track_is_empty(self) -> None:
+        for town, count in PROGRESSIVE_SHOP_COUNTS.items():
+            self.assertGreater(count, 0, f"{town} would never open past its first row")

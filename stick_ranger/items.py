@@ -766,7 +766,9 @@ PROGRESSIVE_SHOPS: dict[str, str] = {
 SHOP_PROGRESSION_STEPS: dict[str, int] = {
     "Town": 33,
     "Village": 15,
-    "Resort": 9,
+    # Resort stocks two items per column and both sit on the first row of the
+    # grid, so it has one stock level: a single item opens the whole shop.
+    "Resort": 1,
     "Island": 33,
 }
 SHOP_PROGRESSION_FIRST: dict[str, int] = {
@@ -776,10 +778,15 @@ SHOP_PROGRESSION_FIRST: dict[str, int] = {
     "Island": 1,
 }
 
-# Enough of each to open that shop's deepest column.
+# How many of each the pool holds: the highest requirement any row that actually
+# holds something asks for. Taking the column depth instead put nine Progressive
+# Resort Shop items in the pool, where its columns are nine deep, stock two
+# items each, and show both on one row of the grid.
 PROGRESSIVE_SHOP_COUNTS: dict[str, int] = {
-    town: SHOP_PROGRESSION_STEPS[town] - 1 + SHOP_PROGRESSION_FIRST[town]
-    for town in PROGRESSIVE_SHOPS
+    "Town": 32,
+    "Village": 15,
+    "Resort": 1,
+    "Island": 33,
 }
 
 progressive_shop: list[ProgressiveShopData] = [

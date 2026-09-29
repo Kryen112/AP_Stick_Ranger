@@ -528,7 +528,7 @@ class ProgressiveShop(Toggle):
     Shop items instead of by completing stages.
 
     Every shop has its own track, so opening Island's stock does not open
-    Town's: 32 Progressive Town Shop, 15 Village, 9 Resort and 33 Island. Town
+    Town's: 32 Progressive Town Shop, 15 Village, 1 Resort and 33 Island. Town
     keeps its first row stocked because that is where you start; Village,
     Resort and Island hold nothing at all until their own first item arrives,
     and say so.
