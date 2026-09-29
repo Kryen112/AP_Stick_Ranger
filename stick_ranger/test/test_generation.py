@@ -466,3 +466,30 @@ class TestRemovableCompos(SweepTestBase):
 
     def test_the_seed_still_fills(self) -> None:
         self.assertSeedWorks()
+
+
+class TestShopLocationNames(SweepTestBase):
+    """A shop check says which town it is in, so a hint tells you where to go."""
+
+    options = {"shop_checks": 1, "shuffle_books": 1}
+
+    def test_every_name_says_its_town(self) -> None:
+        for entry in shop_table.values():
+            self.assertTrue(
+                entry["name"].startswith(f"{entry['region']} Shop: "),
+                f"{entry['name']} does not say it is in {entry['region']}",
+            )
+
+    def test_names_are_unique(self) -> None:
+        """The table is keyed by id, but Archipelago looks locations up by name."""
+        names = [entry["name"] for entry in shop_table.values()]
+        self.assertEqual(len(names), len(set(names)))
+
+    def test_every_town_is_represented(self) -> None:
+        towns = {entry["region"] for entry in shop_table.values()}
+        self.assertEqual(towns, {"Town", "Village", "Resort", "Island"})
+
+    def test_the_world_can_find_them_all(self) -> None:
+        """Renaming breaks generation outright if anything still used the old name."""
+        for entry in shop_table.values():
+            self.multiworld.get_location(entry["name"], self.player)
