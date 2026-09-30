@@ -536,6 +536,13 @@ class TestOptionLayout(SweepTestBase):
         self.assertEqual(len(grouped), len(set(grouped)), "an option is in two groups")
         self.assertEqual(sorted(grouped), sorted(n for n in visible_option_names() if n != "goal"))
 
+    def test_the_yaml_follows_the_page(self) -> None:
+        """The template is written in field order, so that order is the page's."""
+        yaml_order = list(SROptions.type_hints)
+        positions = [yaml_order.index(name) for name in self.grouped_names()]
+        self.assertEqual(positions, sorted(positions), "the yaml and the options page disagree on order")
+        self.assertEqual(visible_option_names()[0], "goal")
+
 
 class TestSlotData(SweepTestBase):
     """Every option the client acts on has to actually reach it.

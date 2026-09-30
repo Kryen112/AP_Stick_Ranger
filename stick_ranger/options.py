@@ -608,7 +608,17 @@ class RemovableCompos(Toggle):
 
 @dataclass
 class SROptions(PerGameCommonOptions):
+    # Field order is the order of the yaml template, and SR_OPTION_GROUPS below
+    # lays the options page out the same way. The StagesReqFor* fields are
+    # hidden: they hold what generation rolled between each min and max.
     goal: Goal
+    # Checks
+    shuffle_books: ShuffleBooks
+    shuffle_enemies: ShuffleEnemies
+    shop_checks: ShopChecks
+    progressive_shop: ProgressiveShop
+    randomize_book_costs: BookCostRandomizer
+    # Ranger classes
     ranger_class_randomizer: RangerClassRandomizer
     ranger_class_selected: RangerClassSelector
     classes_req_for_castle: CastleClassUnlocks
@@ -616,6 +626,7 @@ class SROptions(PerGameCommonOptions):
     classes_req_for_pyramid: PyramidClassUnlocks
     classes_req_for_ice_castle: IceCastleClassUnlocks
     classes_req_for_hell_castle: HellCastleClassUnlocks
+    # Boss stage requirements
     min_stages_req_for_castle: CastleMinimumStagesUnlocks
     max_stages_req_for_castle: CastleMaximumStagesUnlocks
     stages_req_for_castle: StagesReqForCastle
@@ -631,25 +642,24 @@ class SROptions(PerGameCommonOptions):
     min_stages_req_for_hell_castle: HellCastleMinimumStagesUnlocks
     max_stages_req_for_hell_castle: HellCastleMaximumStagesUnlocks
     stages_req_for_hell_castle: StagesReqForHellCastle
-    shuffle_books: ShuffleBooks
-    shuffle_enemies: ShuffleEnemies
+    # Logic
+    enforce_logic: EnforceLogic
+    enforce_shop_logic: EnforceShopLogic
+    # Traps and hints
+    trap_percentage: TrapPercentage
+    trap_disguise: TrapDisguise
+    shop_hints: ShopHints
+    # Quality of life
     gold_multiplier: GoldMultiplier
     xp_multiplier: XPMultiplier
     drop_multiplier: DropMultiplier
-    shop_hints: ShopHints
-    trap_disguise: TrapDisguise
-    randomize_book_costs: BookCostRandomizer
-    trap_percentage: TrapPercentage
     free_respec: FreeRespec
-    progressive_shop: ProgressiveShop
-    enforce_logic: EnforceLogic
-    enforce_shop_logic: EnforceShopLogic
-    ring_gold: RingGold
-    ring_link: RingLink
-    ring_link_ratio: RingLinkRatio
-    shop_checks: ShopChecks
     remove_null_compo: RemoveNullCompo
     removable_compos: RemovableCompos
+    # Links
+    ring_link: RingLink
+    ring_link_ratio: RingLinkRatio
+    ring_gold: RingGold
     death_link: DeathLink
 
 
