@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from itertools import zip_longest
 from typing import Any, Callable
 
 from BaseClasses import (
@@ -113,6 +112,7 @@ class StickRanger(World):
 
     def generate_early(self) -> None:
         self._validate_options()
+        self._resolve_shop_options()
         self.excluded_locations = self._compute_excluded_locations()
         restored = self._tracker_passthrough()
         if restored is None:
@@ -157,6 +157,16 @@ class StickRanger(World):
                 "At least one of 'shuffle_books', 'shuffle_enemies' or "
                 "'shop_checks' must be enabled."
             )
+
+    def _resolve_shop_options(self) -> None:
+        """
+        Progressive Shop and Enforce Shop Logic only mean something once the
+        shop holds checks. Zeroing them here is what makes fill_slot_data ship
+        0, so the client neither gates nor greys a shop logic never looked at.
+        """
+        if not self.options.shop_checks:
+            self.options.progressive_shop.value = 0
+            self.options.enforce_shop_logic.value = 0
 
     def _compute_excluded_locations(self) -> set[str]:
         """
@@ -333,10 +343,7 @@ class StickRanger(World):
         )
 
         if self.options.progressive_shop:
-            itempool.extend(
-                self.create_item(name)
-                for name in self._progressive_shop_items(self.location_count - len(itempool))
-            )
+            itempool.extend(self.create_item(name) for name in self._progressive_shop_items())
 
         itempool.extend(self._create_traps(self.location_count - len(itempool)))
         while len(itempool) < self.location_count:
@@ -365,25 +372,19 @@ class StickRanger(World):
         location.place_locked_item(self.create_item(self.starter_item_name))
         self.location_count -= 1
 
-    def _progressive_shop_items(self, room: int) -> list[str]:
+    def _progressive_shop_items(self) -> list[str]:
         """
-        One track per shop, trimmed to whatever the seed has room for.
+        One track per shop.
 
-        A books-only seed has 170 locations and the four tracks are 89 items, so
-        they do not always fit. Shop Checks is what makes them progression, and
-        it brings 462 locations of its own, so there is always room when
-        something actually depends on them -- without it they only widen the
-        stock and the deepest rows can go unopened. Trimming round-robin takes
-        the loss off the bottom of every shop rather than dropping one entirely.
+        Only reached with Shop Checks on, which brings 462 locations of its own,
+        so the 81 items always fit: they used to be trimmed to a small seed and
+        leave the deepest rows unopenable.
         """
-        tracks = [
-            [name] * PROGRESSIVE_SHOP_COUNTS[town] for town, name in PROGRESSIVE_SHOPS.items()
+        return [
+            name
+            for town, name in PROGRESSIVE_SHOPS.items()
+            for _ in range(PROGRESSIVE_SHOP_COUNTS[town])
         ]
-        wanted = [name for step in zip_longest(*tracks) for name in step if name]
-        if len(wanted) <= room:
-            return wanted
-        assert not self.options.shop_checks, "shop checks must leave room for their own gates"
-        return wanted[:room]
 
     def _create_traps(self, open_locations: int) -> list[SRItem]:
         if not self.options.trap_percentage:

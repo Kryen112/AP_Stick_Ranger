@@ -549,6 +549,8 @@ class ProgressiveShop(Toggle):
     In the base game only Town's stock grows with the stages you beat; Village,
     Resort and Island sell everything the moment you arrive. So this option
     replaces Town's gating and adds gating to the other three.
+
+    Does nothing unless Shop Checks is on.
     """
 
     display_name = "Progressive Shop"
@@ -561,6 +563,8 @@ class EnforceShopLogic(Toggle):
 
     This is the shop's half of Enforce Logic. Without it the shop still sells
     anything it has stocked -- logic simply does not count on you buying it.
+
+    Does nothing unless Shop Checks is on.
     """
 
     display_name = "Enforce Shop Logic"

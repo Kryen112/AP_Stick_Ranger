@@ -208,7 +208,7 @@ class TestMaximumStageRequirements(SweepTestBase):
 class TestProgressiveShop(SweepTestBase):
     def test_one_track_per_shop(self) -> None:
         """Each shop gets enough of its own item to open its deepest column."""
-        self.options = {"progressive_shop": 1, "shuffle_books": 1, "shuffle_enemies": 3}
+        self.options = {"progressive_shop": 1, "shop_checks": 1, "shuffle_books": 1, "shuffle_enemies": 3}
         self.world_setup()
         counts = self.pool_counts()
         for town, name in PROGRESSIVE_SHOPS.items():
@@ -216,15 +216,22 @@ class TestProgressiveShop(SweepTestBase):
         self.assertSeedWorks()
 
     def test_absent_when_the_option_is_off(self) -> None:
-        self.options = {"progressive_shop": 0}
+        self.options = {"progressive_shop": 0, "shop_checks": 1}
         self.world_setup()
         for name in PROGRESSIVE_SHOPS.values():
             self.assertEqual(self.pool_counts()[name], 0, name)
 
-    def test_fits_the_smallest_pool(self) -> None:
-        """89 extra items still has to fit a books-only seed."""
+    def test_ignored_without_shop_checks(self) -> None:
+        """
+        Nothing in logic sits behind a shop row then, so the items would only
+        gate the player's own shop -- and on a books-only seed they did not even
+        fit, leaving the deepest rows unopenable. The client is told 0.
+        """
         self.options = {"progressive_shop": 1, "shuffle_books": 1, "shuffle_enemies": 0}
         self.world_setup()
+        for name in PROGRESSIVE_SHOPS.values():
+            self.assertEqual(self.pool_counts()[name], 0, name)
+        self.assertEqual(self.world.fill_slot_data()["progressive_shop"], 0)
         self.assertSeedWorks()
 
 
@@ -562,6 +569,12 @@ class TestEnforceShopLogic(SweepTestBase):
 
     def test_the_client_is_told(self) -> None:
         self.assertEqual(self.world.fill_slot_data()["enforce_shop_logic"], 1)
+
+    def test_ignored_without_shop_checks(self) -> None:
+        """There is no shop logic to enforce then, so the client must not grey anything."""
+        self.options = {"shuffle_books": 1, "enforce_shop_logic": 1}
+        self.world_setup()
+        self.assertEqual(self.world.fill_slot_data()["enforce_shop_logic"], 0)
 
     def test_the_seed_still_fills(self) -> None:
         self.assertSeedWorks()
