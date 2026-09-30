@@ -19,13 +19,14 @@ from ..items import (
     PROGRESSIVE_SHOPS,
     SHOP_PROGRESSION_STEPS,
     SHOP_TOWN_UNLOCKS,
+    filler,
     traps,
     unlocks_by_region,
 )
 from ..items import stage_id
 from ..regions import regions
 from ..rules import SHOP_TIER_GATES, region_stage_id
-from ..options import SROptions
+from ..options import SROptions, TrapPercentage
 from ..shop import SHOP_REQS, shop_table
 from . import StickRangerTestBase
 
@@ -116,16 +117,29 @@ class TestCheckSourceSweep(SweepTestBase):
 
 class TestTrapSweep(SweepTestBase):
     def test_every_trap_level_fills(self) -> None:
-        for traps in range(6):   # none, 5, 10, 20, 50, 100
-            with self.subTest(traps=traps):
-                self.options = {"traps": traps, "shuffle_books": 1, "shuffle_enemies": 3}
+        for percent in (0, 5, 10, 20, 50, 100):
+            with self.subTest(trap_percentage=percent):
+                self.options = {"trap_percentage": percent, "shuffle_books": 1, "shuffle_enemies": 3}
                 self.world_setup()
                 self.assertSeedWorks()
                 trap_count = sum(1 for item in self.multiworld.itempool if item.trap)
-                if traps == 0:
+                if percent == 0:
                     self.assertEqual(trap_count, 0)
                 else:
                     self.assertGreater(trap_count, 0)
+
+    def test_at_a_hundred_no_weapon_or_compo_is_left(self) -> None:
+        """Town unlocks stay in the pool as useful items; the filler is all traps."""
+        self.options = {"trap_percentage": 100, "shuffle_books": 1, "shuffle_enemies": 3}
+        self.world_setup()
+        filler_names = {item.item_name for item in filler}
+        self.assertEqual([item.name for item in self.multiworld.itempool if item.name in filler_names], [])
+
+    def test_old_yaml_values_still_parse(self) -> None:
+        """1.8 yamls said `none` or a quoted number; both have to keep working."""
+        self.assertEqual(TrapPercentage.from_any("none").value, 0)
+        self.assertEqual(TrapPercentage.from_any("20").value, 20)
+        self.assertEqual(TrapPercentage.from_any(5).value, 5)
 
 
 class TestClassRandomizerSweep(SweepTestBase):
@@ -369,7 +383,7 @@ class TestProgressiveShopGatesChecks(SweepTestBase):
             "progressive_shop": 1,
             "shuffle_books": 1,
             "shuffle_enemies": 3,
-            "traps": 5,
+            "trap_percentage": 100,
         }
         self.world_setup()
         self.assertSeedWorks()
@@ -594,7 +608,7 @@ class TestImportantHintsOnly(SweepTestBase):
 class TestTrapDisguise(SweepTestBase):
     """Presentation only: it reaches the client and changes nothing about the fill."""
 
-    options = {"shuffle_books": 1, "shop_checks": 1, "traps": 20, "trap_disguise": 1}
+    options = {"shuffle_books": 1, "shop_checks": 1, "trap_percentage": 20, "trap_disguise": 1}
 
     def test_the_client_is_told(self) -> None:
         self.assertEqual(self.world.fill_slot_data()["trap_disguise"], 1)

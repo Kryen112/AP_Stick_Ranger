@@ -31,7 +31,6 @@ from .constants import (
     SLOT_DATA_OPTIONS,
     STAGE_SETTINGS,
     STARTER_UNLOCK_CHOICES,
-    TRAP_SHARE_BY_OPTION,
 )
 from .items import (
     PROGRESSIVE_SHOPS,
@@ -387,9 +386,9 @@ class StickRanger(World):
         return wanted[:room]
 
     def _create_traps(self, open_locations: int) -> list[SRItem]:
-        if not self.options.traps:
+        if not self.options.trap_percentage:
             return []
-        share = TRAP_SHARE_BY_OPTION[self.options.traps.value] / 100
+        share = self.options.trap_percentage.value / 100
         weights = [trap.weight for trap in traps]
         return [
             self.create_item(self.random.choices(traps, weights=weights, k=1)[0].item_name)

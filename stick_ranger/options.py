@@ -438,23 +438,28 @@ class BookCostRandomizer(Choice):
     default = 0
 
 
-class Traps(Choice):
+class TrapPercentage(Range):
     """
-    What share of the filler items are Traps.
+    What share of the filler items are Traps, as a percentage.
 
     The share is of the items left once every stage and class unlock is placed,
     so at 100 every non-progression check you find is a Trap and Archipelago
     never hands you a weapon or a compo.
     """
 
-    display_name = "Traps"
-    option_none = 0
-    option_5 = 1
-    option_10 = 2
-    option_20 = 3
-    option_50 = 4
-    option_100 = 5
+    display_name = "Trap Percentage"
+    range_start = 0
+    range_end = 100
     default = 0
+
+    @classmethod
+    def from_text(cls, text: str) -> Range:
+        # 1.8 yamls wrote `traps: none`; their other values were the numbers
+        # themselves. A bare number used to be read as the position in a list
+        # of choices, which is how `traps: 5` once meant every filler a trap.
+        if text.lower() == "none":
+            return cls(0)
+        return super().from_text(text)
 
 
 class RingLink(Toggle):
@@ -620,7 +625,7 @@ class SROptions(PerGameCommonOptions):
     important_hints_only: ImportantHintsOnly
     trap_disguise: TrapDisguise
     randomize_book_costs: BookCostRandomizer
-    traps: Traps
+    trap_percentage: TrapPercentage
     free_respec: FreeRespec
     progressive_shop: ProgressiveShop
     enforce_logic: EnforceLogic
