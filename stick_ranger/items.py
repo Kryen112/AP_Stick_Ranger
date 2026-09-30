@@ -4,6 +4,8 @@ from typing import NamedTuple
 
 from BaseClasses import Item, ItemClassification
 
+from .shop import shop_table
+
 
 class SRItem(Item):
     game: str = "Stick Ranger"
@@ -778,15 +780,14 @@ SHOP_PROGRESSION_FIRST: dict[str, int] = {
     "Island": 1,
 }
 
-# How many of each the pool holds: the highest requirement any row that actually
-# holds something asks for. Taking the column depth instead put nine Progressive
-# Resort Shop items in the pool, where its columns are nine deep, stock two
-# items each, and show both on one row of the grid.
+# How many of each the pool holds: the highest requirement any check in that
+# shop asks for, read off the table rather than copied beside it. Taking the
+# column depth instead once put nine Progressive Resort Shop items in the pool,
+# where its columns are nine deep, stock two items each, and show both on one
+# row of the grid.
 PROGRESSIVE_SHOP_COUNTS: dict[str, int] = {
-    "Town": 32,
-    "Village": 15,
-    "Resort": 1,
-    "Island": 33,
+    town: max(entry["req"] for entry in shop_table.values() if entry["region"] == town)
+    for town in PROGRESSIVE_SHOPS
 }
 
 progressive_shop: list[ProgressiveShopData] = [
