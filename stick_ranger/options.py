@@ -497,7 +497,12 @@ class RingLinkRatio(Range):
 
 class RingGold(Range):
     """
-    Gold earned every time an Angel throws a ring. 0 turns it off.
+    Gold earned every time an Angel throws a ring, with Ring Link on. 0 turns
+    it off.
+
+    This is Ring Link's payout: the gold goes out to the room as rings like any
+    other gold you earn, so your Angels' rings are what you send. It does
+    nothing unless Ring Link is on.
 
     Angels throw roughly two rings a second each, or seven on a quick ring, so
     four of them at the maximum out-earns every enemy in the game several times

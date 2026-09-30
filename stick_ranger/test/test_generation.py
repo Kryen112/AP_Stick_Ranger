@@ -599,6 +599,20 @@ class TestEnforceShopLogic(SweepTestBase):
         self.assertEqual(shipped, expected)
 
 
+class TestRingGold(SweepTestBase):
+    """Ring Gold is Ring Link's payout, so it is zeroed without it."""
+
+    options = {"shuffle_books": 1, "ring_link": 1, "ring_gold": 50}
+
+    def test_ships_with_ring_link(self) -> None:
+        self.assertEqual(self.world.fill_slot_data()["ring_gold"], 50)
+
+    def test_zeroed_without_ring_link(self) -> None:
+        self.options = {"shuffle_books": 1, "ring_link": 0, "ring_gold": 50}
+        self.world_setup()
+        self.assertEqual(self.world.fill_slot_data()["ring_gold"], 0)
+
+
 class TestShopHints(SweepTestBase):
     """Purely a client instruction: it must reach the client and change nothing else."""
 

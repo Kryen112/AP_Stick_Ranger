@@ -113,6 +113,7 @@ class StickRanger(World):
     def generate_early(self) -> None:
         self._validate_options()
         self._resolve_shop_options()
+        self._resolve_ring_options()
         self.excluded_locations = self._compute_excluded_locations()
         restored = self._tracker_passthrough()
         if restored is None:
@@ -167,6 +168,15 @@ class StickRanger(World):
         if not self.options.shop_checks:
             self.options.progressive_shop.value = 0
             self.options.enforce_shop_logic.value = 0
+
+    def _resolve_ring_options(self) -> None:
+        """
+        Gold per Thrown Ring is Ring Link's payout: the rings your Angels throw
+        are what you send the room. Without Ring Link it would be a plain gold
+        faucet, so it is zeroed and the client is told 0.
+        """
+        if not self.options.ring_link:
+            self.options.ring_gold.value = 0
 
     def _compute_excluded_locations(self) -> set[str]:
         """
