@@ -14,7 +14,7 @@ so a hint says where to go and four shops' worth of checks do not read alike.
 
 from __future__ import annotations
 
-from .locations import LocationDict
+from .base import LocationDict
 
 
 class ShopLocationDict(LocationDict, total=False):

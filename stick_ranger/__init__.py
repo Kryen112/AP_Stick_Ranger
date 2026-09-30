@@ -45,9 +45,8 @@ from .items import (
     stages,
     traps,
 )
+from .base import LocationDict, SRLocation
 from .locations import (
-    LocationDict,
-    SRLocation,
     books_table,
     enemies_table,
     location_name_groups,

@@ -1,17 +1,9 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from .base import LocationDict, SRLocation
+from .shop import shop_table
 
-from BaseClasses import Location
-
-
-class SRLocation(Location):
-    game: str = "Stick Ranger"
-
-
-class LocationDict(TypedDict, total=False):
-    name: str
-    region: str
+__all__ = ["LocationDict", "SRLocation"]
 
 
 stages_table: dict[int, LocationDict] = {
@@ -572,10 +564,6 @@ enemies_table: dict[int, LocationDict] = {
     10538: {"name": "Volcano: Yellow Boss Box Eel", "region": "Volcano"},
     # 10539 Map sign spawning
 }
-
-# Imported late: shop.py imports LocationDict from here, so this cannot sit at
-# the top of the file.
-from .shop import shop_table  # noqa: E402
 
 location_table: dict[int, LocationDict] = {
     **stages_table,
