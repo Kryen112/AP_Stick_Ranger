@@ -26,7 +26,6 @@ from .constants import (
     OPENING_STREET_ENEMIES,
     OPENING_STREET_EXIT,
     RANGER_CLASSES,
-    ROLLED_OPTIONS,
     SLOT_DATA_OPTIONS,
     STAGE_SETTINGS,
     STARTER_UNLOCK_CHOICES,
@@ -108,19 +107,23 @@ class StickRanger(World):
     excluded_locations: set[str]
     location_count: int
 
+    # Universal Tracker can rebuild the world from slot_data alone, with no
+    # yaml: every option ships, and generate_early reads them all back.
+    ut_can_gen_without_yaml = True
+
     # ------------------------------------------------------------------ setup
 
     def generate_early(self) -> None:
+        restored = self._tracker_passthrough()
+        if restored is not None:
+            self._restore_options(restored)
         self._validate_options()
         self._resolve_shop_options()
         self._resolve_ring_options()
         self.excluded_locations = self._compute_excluded_locations()
-        restored = self._tracker_passthrough()
         if restored is None:
             self._resolve_class_requirements()
             self._roll_stage_requirements()
-        else:
-            self._restore_requirements(restored)
 
     @staticmethod
     def interpret_slot_data(slot_data: dict[str, Any]) -> dict[str, Any]:
@@ -130,7 +133,9 @@ class StickRanger(World):
         The boss gates are decided during generation, so a tracker rebuilding
         the world from the yaml alone rolls its own numbers and then disagrees
         with the seed about what is in logic. Returning slot_data asks UT to
-        re-generate with it, and generate_early reads it back below.
+        re-generate with it, and generate_early reads every option back from
+        it -- the rolled gates and the ones a player set alike, which is what
+        lets UT skip the yaml altogether.
         """
         return slot_data
 
@@ -141,9 +146,15 @@ class StickRanger(World):
             return None
         return passthrough.get(self.game)
 
-    def _restore_requirements(self, slot_data: dict[str, Any]) -> None:
-        """Use the seed's own rolled values rather than rolling new ones."""
-        for option_name in ROLLED_OPTIONS:
+    def _restore_options(self, slot_data: dict[str, Any]) -> None:
+        """
+        Use the seed's own option values rather than the yaml's, or defaults.
+
+        The rolled and clamped values come back resolved, so nothing is rolled
+        over the top of them; every other option comes back too, so a tracker
+        started without a yaml still builds the same world.
+        """
+        for option_name in SLOT_DATA_OPTIONS:
             if option_name in slot_data:
                 getattr(self.options, option_name).value = slot_data[option_name]
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from BaseClasses import LocationProgressType
 
-from ..constants import CLASS_REQ_OPTIONS, ROLLED_OPTIONS
+from ..constants import CLASS_REQ_OPTIONS, ROLLED_OPTIONS, SLOT_DATA_OPTIONS
 from ..items import classes, stage_id, unlocks_by_region
 from ..regions import regions
 from ..rules import LOGIC_VERSION
@@ -264,6 +264,34 @@ class TestTrackerPassthrough(StickRangerTestBase):
         slot_data = self.multiworld.worlds[self.player].fill_slot_data()
         for name in ROLLED_OPTIONS:
             self.assertIn(name, slot_data, f"{name} is decided at generation but never shipped")
+
+    def test_ut_can_generate_without_a_yaml(self) -> None:
+        self.assertTrue(self.world.ut_can_gen_without_yaml)
+
+    def test_every_shipped_option_is_restored(self) -> None:
+        """
+        Yaml-less regeneration starts from defaults, so every option a player
+        set has to come back from slot_data, not only the rolled gates.
+        """
+        world = self.multiworld.worlds[self.player]
+        pretend = world.fill_slot_data()
+        pretend.update({
+            "goal": 6,
+            "shop_checks": 1,
+            "progressive_shop": 1,
+            "trap_percentage": 42,
+            "ranger_class_selected": "Angel",
+            "shop_hints": 1,
+        })
+        self.multiworld.re_gen_passthrough = {"Stick Ranger": pretend}
+        try:
+            world.generate_early()
+            for name in SLOT_DATA_OPTIONS:
+                self.assertEqual(
+                    getattr(world.options, name).value, pretend[name], f"{name} was not restored"
+                )
+        finally:
+            del self.multiworld.re_gen_passthrough
 
 
 class TestLogicDescription(StickRangerTestBase):
