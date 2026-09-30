@@ -443,4 +443,8 @@ class StickRanger(World):
         }
         slot_data["player_name"] = self.player_name
         slot_data["player_id"] = self.player
+        # Which apworld generated the seed. The client used to guess from
+        # which keys were missing; now it can say so, and warn when it is
+        # older or newer than the seed expects.
+        slot_data["world_version"] = self.world_version.as_simple_string()
         return slot_data

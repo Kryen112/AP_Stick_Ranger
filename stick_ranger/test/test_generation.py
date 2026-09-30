@@ -3,6 +3,7 @@ and stay beatable."""
 
 from __future__ import annotations
 
+import json
 import os
 import re
 from collections import Counter
@@ -517,6 +518,13 @@ class TestSlotData(SweepTestBase):
 
     def test_shop_checks_ships_when_off(self) -> None:
         self.assertEqual(self.world.fill_slot_data()["shop_checks"], 0)
+
+    def test_the_world_version_is_the_manifest_version(self) -> None:
+        """The client branches on this, so it has to be the number on the tag."""
+        manifest = json.loads(
+            (Path(__file__).resolve().parents[1] / "archipelago.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(self.world.fill_slot_data()["world_version"], manifest["world_version"])
 
 
 class TestSlotDataWithShopChecks(SweepTestBase):
