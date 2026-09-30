@@ -534,6 +534,10 @@ class ProgressiveShop(Toggle):
     keeps its first row stocked because that is where you start; Village,
     Resort and Island hold nothing at all until their own first item arrives,
     and say so.
+
+    In the base game only Town's stock grows with the stages you beat; Village,
+    Resort and Island sell everything the moment you arrive. So this option
+    replaces Town's gating and adds gating to the other three.
     """
 
     display_name = "Progressive Shop"

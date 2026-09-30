@@ -3,8 +3,13 @@ and stay beatable."""
 
 from __future__ import annotations
 
+import os
+import re
 from collections import Counter
+from pathlib import Path
 
+from BaseClasses import CollectionState
+from Fill import distribute_items_restrictive
 from Options import OptionError, PerGameCommonOptions
 
 from ..constants import GOAL_OPTIONS_MAP
@@ -14,12 +19,33 @@ from ..items import (
     SHOP_PROGRESSION_STEPS,
     SHOP_TOWN_UNLOCKS,
     traps,
+    unlocks_by_region,
 )
 from ..items import stage_id
-from ..rules import SHOP_TIER_GATES
+from ..regions import regions
+from ..rules import SHOP_TIER_GATES, region_stage_id
 from ..options import SROptions
-from ..shop import shop_table
+from ..shop import SHOP_REQS, shop_table
 from . import StickRangerTestBase
+
+shop_by_name = {entry["name"]: entry for entry in shop_table.values()}
+
+
+def site_game_js() -> Path | None:
+    """
+    The web client's game.js, when its repo is checked out beside this one.
+
+    SR_SITE_ROOT overrides the location. The world folder may be reached
+    through a junction from the Archipelago checkout, so resolve it first.
+    """
+    root = os.environ.get("SR_SITE_ROOT")
+    candidates = [Path(root)] if root else []
+    candidates.append(Path(__file__).resolve().parents[2].parent / "Kryen112.github.io")
+    for candidate in candidates:
+        game_js = candidate / "public" / "game.js"
+        if game_js.is_file():
+            return game_js
+    return None
 
 
 class SweepTestBase(StickRangerTestBase):
@@ -310,20 +336,24 @@ class TestProgressiveShopGatesChecks(SweepTestBase):
                 f"{cheapest['name']} is reachable before any {PROGRESSIVE_SHOPS[region]}",
             )
 
-    def test_shop_tiers_are_gated_without_progressive_shop(self) -> None:
+    def test_a_deep_town_row_waits_for_a_late_stage(self) -> None:
         """
-        With Progressive Shop off the game still widens the stock as stages are
-        beaten, so the tier gates have to apply on their own.
+        With Progressive Shop off, Town stocks a row only once a stage with a
+        Shop_Reqs entry above it can be beaten -- the deepest row wants the
+        last entry in the table, which is Hell Gate.
         """
         self.options = {"shop_checks": 1, "shuffle_books": 1}
         self.world_setup()
-        deepest = max(shop_table.values(), key=lambda e: e.get("tier", 0))
+        deepest = max(
+            (e for e in shop_table.values() if e["region"] == "Town"), key=lambda e: e["tier"]
+        )
         location = self.multiworld.get_location(deepest["name"], self.player)
         state = self.state_with(*[f"Unlock {r}" for r in self.TOWNS])
         self.assertFalse(
             location.can_reach(state),
             f"{deepest['name']} is reachable the moment you can walk into the town",
         )
+        self.assertTrue(location.can_reach(self.multiworld.get_all_state(False)))
 
     def test_progressive_shop_is_progression_with_checks_on(self) -> None:
         self.options = {"shop_checks": 1, "progressive_shop": 1, "shuffle_books": 1}
@@ -343,6 +373,118 @@ class TestProgressiveShopGatesChecks(SweepTestBase):
         self.world_setup()
         self.assertSeedWorks()
 
+
+class TestTownStockRule(SweepTestBase):
+    """
+    With Progressive Shop off the shop rule is the game's own Shop_Reqs table.
+
+    Row 8 of Town needs a stage with an entry of 9 or more beaten, and the
+    cheapest of those is Cavern 1, a Grassland stage behind no gate. Grassland 7
+    has an entry of 7, so it opens rows 0-6 only. The other three shops stock
+    everything on arrival, so their checks need nothing but the town unlock.
+    """
+
+    options = {"shop_checks": 1, "shuffle_books": 1}
+
+    def town_row(self, row: int) -> str:
+        return next(e["name"] for e in shop_table.values() if e["region"] == "Town" and e["tier"] == row)
+
+    def test_row_eight_opens_on_cavern_one(self) -> None:
+        location = self.multiworld.get_location(self.town_row(8), self.player)
+        self.assertFalse(location.can_reach(self.state_with("Unlock Grassland 7")))
+        self.assertTrue(location.can_reach(self.state_with("Unlock Cavern 1")))
+
+    def test_row_one_is_free(self) -> None:
+        """Opening Street's entry is 2, and it needs no unlock."""
+        location = self.multiworld.get_location(self.town_row(1), self.player)
+        self.assertTrue(location.can_reach(self.state_with()))
+
+    def test_row_nine_needs_a_sea_stage(self) -> None:
+        """Every entry of 10 or more belongs to a stage behind the Castle gate."""
+        location = self.multiworld.get_location(self.town_row(9), self.player)
+        grassland = self.state_with("Unlock Castle", *unlocks_by_region["Grassland"])
+        self.assertFalse(location.can_reach(grassland))
+        with_sea = self.state_with("Unlock Castle", "Unlock Seaside 1", *unlocks_by_region["Grassland"])
+        self.assertTrue(location.can_reach(with_sea))
+
+    def test_the_other_shops_need_only_their_unlock(self) -> None:
+        for town in ("Village", "Resort", "Island"):
+            deepest = max(
+                (e for e in shop_table.values() if e["region"] == town), key=lambda e: e["tier"]
+            )
+            location = self.multiworld.get_location(deepest["name"], self.player)
+            self.assertTrue(
+                location.can_reach(self.state_with(f"Unlock {town}")),
+                f"{deepest['name']} should be stocked the moment you can walk in",
+            )
+
+
+class TestShopReqsPin(SweepTestBase):
+    """SHOP_REQS is a copy of Shop_Reqs in game.js; drift would strand seeds."""
+
+    options = {"shop_checks": 1, "shuffle_books": 1}
+
+    def test_one_entry_per_stage(self) -> None:
+        self.assertEqual(len(SHOP_REQS), 90)
+
+    def test_matches_the_client_when_it_is_checked_out(self) -> None:
+        """The site repo is not part of CI, so this only runs beside a checkout."""
+        game_js = site_game_js()
+        if game_js is None:
+            self.skipTest("no Kryen112.github.io checkout beside this repo")
+        match = re.search(r"var Shop_Reqs = \[([^\]]*)\]", game_js.read_text(encoding="utf-8"))
+        self.assertIsNotNone(match, "Shop_Reqs not found in game.js")
+        client = tuple(int(n) for n in match.group(1).split(","))
+        self.assertEqual(SHOP_REQS, client, "SHOP_REQS drifted from game.js")
+
+
+class TestStockingRuleNeverStrands(SweepTestBase):
+    """
+    Fill real seeds, then sweep them under the game's own stocking rule rather
+    than the access rules, and demand the goal is still reachable.
+
+    This is the failure that shipped in 1.8.5: the access rule was looser than
+    the shop, so a fill Archipelago called beatable could not be beaten.
+    """
+
+    def game_stocked(self, location, state, progressive: bool) -> bool:
+        data = shop_by_name.get(location.name)
+        if data is None:
+            return True
+        if progressive:
+            return state.count(PROGRESSIVE_SHOPS[data["region"]], self.player) >= data["req"]
+        if data["region"] != "Town":
+            return True
+        level = 1
+        for name in regions:
+            if self.multiworld.get_region(name, self.player).can_reach(state):
+                level = max(level, SHOP_REQS[region_stage_id(name)])
+        return data["tier"] < level
+
+    def sweep_like_the_game(self, progressive: bool) -> bool:
+        state = CollectionState(self.multiworld)
+        collected: set = set()
+        while True:
+            progressed = False
+            for location in self.multiworld.get_locations(self.player):
+                if location in collected or not location.can_reach(state):
+                    continue
+                if not self.game_stocked(location, state, progressive):
+                    continue
+                collected.add(location)
+                state.collect(location.item, prevent_sweep=True)
+                progressed = True
+            if not progressed:
+                return self.multiworld.completion_condition[self.player](state)
+
+    def test_filled_seeds_are_beatable_under_the_game_rule(self) -> None:
+        for progressive in (0, 1):
+            for seed in (1, 2, 3):
+                with self.subTest(progressive_shop=progressive, seed=seed):
+                    self.options = {"shop_checks": 1, "shuffle_books": 1, "progressive_shop": progressive}
+                    self.world_setup(seed=seed)
+                    distribute_items_restrictive(self.multiworld)
+                    self.assertTrue(self.sweep_like_the_game(bool(progressive)))
 
 
 class TestSlotData(SweepTestBase):
@@ -536,7 +678,6 @@ class TestProgressiveShopCounts(SweepTestBase):
     def test_no_track_is_empty(self) -> None:
         for town, count in PROGRESSIVE_SHOP_COUNTS.items():
             self.assertGreater(count, 0, f"{town} would never open past its first row")
-
 
 
 class TestBookCostTenth(SweepTestBase):

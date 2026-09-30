@@ -29,7 +29,8 @@ from .items import (
     unlocks_by_region,
 )
 from .options import SROptions
-from .shop import shop_table
+from .regions import regions
+from .shop import SHOP_REQS, shop_table
 
 Predicate = Callable[[CollectionState], bool]
 
@@ -53,15 +54,17 @@ BOSS_GATES: tuple[tuple[str, str, str | None], ...] = (
 # Boss rush stages, reachable once the Hell Castle gate is open.
 BOSS_RUSH_STAGES: tuple[str, ...] = ("Volcano", "Mountaintop")
 
-# Shop stock is not free. The game opens a row once you have beaten a stage that
-# stocks it (Shop_Reqs in game.js), and the first stage stocking each tier falls
-# in these regions -- so a tier is buyable exactly when its region is reachable:
+# With Progressive Shop on, the game stocks rows by items alone, and logic adds
+# a pace on top: a tier is only counted once the world has opened as far as the
+# stage that would have stocked it in vanilla (Shop_Reqs in game.js):
 #
 #     tiers  0-8  Grassland      tiers 18-22  Ice   (behind Pyramid)
 #     tiers  9-13 Sea   (behind Castle)      tiers 23-32  Hell  (behind Ice Castle)
 #     tiers 14-17 Desert (behind Submarine Shrine)
 #
-# Highest threshold first, so the first match wins.
+# Without it, the fill was free to hand out nothing but Progressive Shop until
+# the shop finally coughed up a stage. Highest threshold first, so the first
+# match wins. With Progressive Shop off this table is not used at all.
 SHOP_TIER_GATES: tuple[tuple[int, str], ...] = (
     (23, "Ice Castle"),
     (18, "Pyramid"),
@@ -76,6 +79,24 @@ def shop_tier_gate(tier: int, gates: dict[str, Predicate]) -> Predicate | None:
         if tier >= threshold:
             return gates[boss_stage]
     return None
+
+
+def region_stage_id(region_name: str) -> int:
+    """The game's stage id for a stage region; Opening Street has no unlock item."""
+    if region_name == "Opening Street":
+        return OPENING_STREET_STAGE_ID
+    return stage_id(region_name)
+
+
+def town_row_stages(row: int) -> list[str]:
+    """
+    Stages whose clearing stocks Town's row, in the game's own terms.
+
+    Town stocks a row once any beaten stage has a Shop_Reqs entry above it.
+    Beating a stage means reaching it, so the rule is "can reach any of these".
+    Opening Street's entry is 2, so rows 0 and 1 need nothing.
+    """
+    return [name for name in regions if SHOP_REQS[region_stage_id(name)] > row]
 
 
 def class_count(state: CollectionState, player: int) -> int:
@@ -173,31 +194,44 @@ def set_shop_rules(
     gates: dict[str, Predicate],
 ) -> None:
     """
-    Gate each shop check on the row it sits in.
+    Gate each shop check on the row it sits in, the way the game stocks it.
 
-    Two things hold a row back. The shop only stocks it once the world has
-    opened far enough (SHOP_TIER_GATES), and with Progressive Shop on you also
-    need that many Progressive items for that shop -- each town has its own
-    track, so opening Island does not open Town. Reaching the town is never the whole
-    requirement: without the tier gate the fill was free to treat all 264 Town
-    checks as open from the start, which is how a seed ends up handing out
-    nothing but Progressive Shop until the shop finally coughs up a stage.
+    With Progressive Shop off this is the game's own rule (SHOP_REQS): a Town
+    row is stocked once you can beat any stage whose entry is above it, and
+    Village, Resort and Island stock everything the moment you can walk in.
+    Anything looser strands the seed -- rows 1-8 used to count as free, and a
+    third of seeds put a Grassland unlock in a row that needed Castle beaten.
+
+    With Progressive Shop on the game stocks by items alone, so a row needs
+    that many of its own shop's Progressive item, and logic also waits for the
+    world to open as far as the stage that stocked the row in vanilla
+    (SHOP_TIER_GATES) -- stricter than the game, so the fill cannot hand out
+    nothing but Progressive Shop until the shop coughs up a stage.
 
     Gold is never a rule: enemies drop it forever, so any price is reachable.
     """
     for location_data in shop_table.values():
         tier = location_data.get("tier", 0)
         clauses: list[Predicate] = []
-        req = location_data.get("req", 0)
-        if options.progressive_shop and req:
-            clauses.append(
-                lambda state, _pl=player, _req=req, _item=PROGRESSIVE_SHOPS[
-                    location_data["region"]
-                ]: state.has(_item, _pl, _req)
-            )
-        gate = shop_tier_gate(tier, gates)
-        if gate is not None:
-            clauses.append(gate)
+        if options.progressive_shop:
+            req = location_data.get("req", 0)
+            if req:
+                clauses.append(
+                    lambda state, _pl=player, _req=req, _item=PROGRESSIVE_SHOPS[
+                        location_data["region"]
+                    ]: state.has(_item, _pl, _req)
+                )
+            gate = shop_tier_gate(tier, gates)
+            if gate is not None:
+                clauses.append(gate)
+        elif location_data["region"] == "Town":
+            stocked_by = town_row_stages(tier)
+            if "Opening Street" not in stocked_by:
+                clauses.append(
+                    lambda state, _pl=player, _stages=tuple(stocked_by): any(
+                        state.can_reach_region(name, _pl) for name in _stages
+                    )
+                )
         if not clauses:
             continue
         set_rule(
@@ -252,9 +286,10 @@ def logic_description(options: SROptions) -> dict[str, object]:
         # Playable with no unlock item at all. Which stages are towns is map
         # geometry rather than a rule, so the client owns that list itself.
         "free": [OPENING_STREET_STAGE_ID],
-        # Shop tier -> the boss gate that stocks it, highest threshold first.
-        # Only Enforce Shop Logic acts on this; without it the shop sells
-        # whatever it has stocked and logic simply does not count on it.
+        # Shop tier -> the boss gate logic waits for with Progressive Shop on,
+        # highest threshold first. Only Enforce Shop Logic acts on this, and
+        # only then: with Progressive Shop off the game's own stock table is
+        # the rule, so what the shop shows is exactly what logic counts.
         "shop_gates": [
             [threshold, stage_id(boss_stage)] for threshold, boss_stage in SHOP_TIER_GATES
         ],
