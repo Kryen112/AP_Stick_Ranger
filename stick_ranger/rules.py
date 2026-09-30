@@ -54,6 +54,12 @@ BOSS_GATES: tuple[tuple[str, str, str | None], ...] = (
 # Boss rush stages, reachable once the Hell Castle gate is open.
 BOSS_RUSH_STAGES: tuple[str, ...] = ("Volcano", "Mountaintop")
 
+# Bump this when the shape or meaning of logic_description changes -- a new
+# rule type, a field read differently. The client checks it at connect, so a
+# rule it does not know how to evaluate is a warning rather than a map that
+# quietly promises the wrong stages.
+LOGIC_VERSION = 1
+
 # With Progressive Shop on, the game stocks rows by items alone, and logic adds
 # a pace on top: a tier is only counted once the world has opened as far as the
 # stage that would have stocked it in vanilla (Shop_Reqs in game.js):
@@ -272,6 +278,7 @@ def logic_description(options: SROptions) -> dict[str, object]:
         region_gate[region] = stage_id(gating_boss)
 
     return {
+        "version": LOGIC_VERSION,
         "regions": {
             region: sorted(stage_id(name.removeprefix("Unlock ")) for name in names)
             for region, names in unlocks_by_region.items()

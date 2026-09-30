@@ -7,6 +7,7 @@ from BaseClasses import LocationProgressType
 from ..constants import CLASS_REQ_OPTIONS, ROLLED_OPTIONS
 from ..items import classes, stage_id, unlocks_by_region
 from ..regions import regions
+from ..rules import LOGIC_VERSION
 from . import StickRangerTestBase
 
 BOSS_CHAIN = ["Castle", "Submarine Shrine", "Pyramid", "Ice Castle", "Hell Castle"]
@@ -280,6 +281,10 @@ class TestLogicDescription(StickRangerTestBase):
 
     def logic(self) -> dict:
         return self.multiworld.worlds[self.player].fill_slot_data()["logic"]
+
+    def test_it_carries_its_version(self) -> None:
+        """The client refuses to evaluate a shape it does not know."""
+        self.assertEqual(self.logic()["version"], LOGIC_VERSION)
 
     def test_it_survives_the_wire(self) -> None:
         """slot_data is JSON over a socket; anything exotic would break login."""
