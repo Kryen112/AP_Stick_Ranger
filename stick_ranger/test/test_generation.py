@@ -13,7 +13,7 @@ from BaseClasses import CollectionState
 from Fill import distribute_items_restrictive
 from Options import OptionError, PerGameCommonOptions
 
-from ..constants import GOAL_OPTIONS_MAP
+from ..constants import GOAL_OPTIONS_MAP, SLOT_DATA_OPTIONS
 from ..items import (
     PROGRESSIVE_SHOP_COUNTS,
     PROGRESSIVE_SHOPS,
@@ -515,6 +515,11 @@ class TestSlotData(SweepTestBase):
         slot_data = self.world.fill_slot_data()
         for name in sorted(self.shipped_options()):
             self.assertIn(name, slot_data, f"{name} never reaches the client")
+
+    def test_the_named_list_is_complete(self) -> None:
+        """SLOT_DATA_OPTIONS is what the client pins, so it has to be the whole set."""
+        self.assertEqual(set(SLOT_DATA_OPTIONS), self.shipped_options())
+        self.assertEqual(len(SLOT_DATA_OPTIONS), len(set(SLOT_DATA_OPTIONS)), "duplicate key")
 
     def test_shop_checks_ships_when_off(self) -> None:
         self.assertEqual(self.world.fill_slot_data()["shop_checks"], 0)

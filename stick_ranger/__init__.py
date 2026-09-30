@@ -28,6 +28,7 @@ from .constants import (
     OPENING_STREET_EXIT,
     RANGER_CLASSES,
     ROLLED_OPTIONS,
+    SLOT_DATA_OPTIONS,
     STAGE_SETTINGS,
     STARTER_UNLOCK_CHOICES,
     TRAP_SHARE_BY_OPTION,
@@ -398,38 +399,7 @@ class StickRanger(World):
     # -------------------------------------------------------------- slot data
 
     def fill_slot_data(self) -> dict[str, Any]:
-        slot_data = self.options.as_dict(
-            "goal",
-            "ranger_class_randomizer",
-            "ranger_class_selected",
-            *CLASS_REQ_OPTIONS,
-            "stages_req_for_castle",
-            "stages_req_for_submarine_shrine",
-            "stages_req_for_pyramid",
-            "stages_req_for_ice_castle",
-            "stages_req_for_hell_castle",
-            "shuffle_books",
-            "shuffle_enemies",
-            "gold_multiplier",
-            "xp_multiplier",
-            "drop_multiplier",
-            "randomize_book_costs",
-            "shop_hints",
-            "important_hints_only",
-            "trap_disguise",
-            "traps",
-            "free_respec",
-            "progressive_shop",
-            "enforce_logic",
-            "enforce_shop_logic",
-            "ring_gold",
-            "ring_link",
-            "ring_link_ratio",
-            "shop_checks",
-            "remove_null_compo",
-            "removable_compos",
-            "death_link",
-        )
+        slot_data = self.options.as_dict(*SLOT_DATA_OPTIONS)
         # The client evaluates this instead of carrying its own copy of the
         # rules, so the two cannot drift apart.
         slot_data["logic"] = logic_description(self.options)

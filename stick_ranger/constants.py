@@ -54,6 +54,40 @@ ROLLED_OPTIONS: list[str] = [
     required for _, _, _, required in STAGE_SETTINGS
 ] + CLASS_REQ_OPTIONS
 
+# Every option fill_slot_data ships, in this order. The client keeps the same
+# list and each side pins the other's when both repos are checked out, so an
+# option cannot be wired through generation and never reach the client -- which
+# is how Shop Checks did nothing for a week in 1.7.0. The min/max bounds stay
+# out on purpose: the rolled result ships instead.
+SLOT_DATA_OPTIONS: tuple[str, ...] = (
+    "goal",
+    "ranger_class_randomizer",
+    "ranger_class_selected",
+    *CLASS_REQ_OPTIONS,
+    *(required for _, _, _, required in STAGE_SETTINGS),
+    "shuffle_books",
+    "shuffle_enemies",
+    "gold_multiplier",
+    "xp_multiplier",
+    "drop_multiplier",
+    "randomize_book_costs",
+    "shop_hints",
+    "important_hints_only",
+    "trap_disguise",
+    "traps",
+    "free_respec",
+    "progressive_shop",
+    "enforce_logic",
+    "enforce_shop_logic",
+    "ring_gold",
+    "ring_link",
+    "ring_link_ratio",
+    "shop_checks",
+    "remove_null_compo",
+    "removable_compos",
+    "death_link",
+)
+
 ENEMIES_OPTION_NON_BOSS: int = 1
 ENEMIES_OPTION_BOSS: int = 2
 ENEMIES_OPTION_ALL: int = 3
