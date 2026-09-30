@@ -653,9 +653,15 @@ class SROptions(PerGameCommonOptions):
     death_link: DeathLink
 
 
-# Layout for the WebHost player-options page. The hidden StagesReqFor* options
-# are rolled during generation and deliberately left out.
+# Layout for the WebHost player-options page, in the same order as the yaml
+# template follows (the field order of SROptions). Goal stays in Archipelago's
+# own default group at the top; the hidden StagesReqFor* options are rolled
+# during generation and deliberately left out.
 SR_OPTION_GROUPS: list[OptionGroup] = [
+    OptionGroup(
+        "Checks",
+        [ShuffleBooks, ShuffleEnemies, ShopChecks, ProgressiveShop, BookCostRandomizer],
+    ),
     OptionGroup(
         "Ranger Classes",
         [
@@ -684,15 +690,19 @@ SR_OPTION_GROUPS: list[OptionGroup] = [
         ],
     ),
     OptionGroup(
-        "Links",
-        [RingLink, RingLinkRatio],
+        "Logic",
+        [EnforceLogic, EnforceShopLogic],
     ),
     OptionGroup(
-        "Checks",
-        [ShuffleBooks, ShuffleEnemies, ShopChecks, ShopHints, BookCostRandomizer, ProgressiveShop],
+        "Traps and Hints",
+        [TrapPercentage, TrapDisguise, ShopHints],
     ),
     OptionGroup(
         "Quality of Life",
-        [GoldMultiplier, XPMultiplier, DropMultiplier, RingGold, RemoveNullCompo, FreeRespec, EnforceLogic],
+        [GoldMultiplier, XPMultiplier, DropMultiplier, FreeRespec, RemoveNullCompo, RemovableCompos],
+    ),
+    OptionGroup(
+        "Links",
+        [RingLink, RingLinkRatio, RingGold, DeathLink],
     ),
 ]

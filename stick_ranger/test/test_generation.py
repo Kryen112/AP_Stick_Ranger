@@ -11,7 +11,7 @@ from pathlib import Path
 
 from BaseClasses import CollectionState
 from Fill import distribute_items_restrictive
-from Options import OptionError, PerGameCommonOptions
+from Options import OptionError, PerGameCommonOptions, Visibility
 
 from ..constants import GOAL_OPTIONS_MAP, SLOT_DATA_OPTIONS
 from ..items import (
@@ -26,7 +26,7 @@ from ..items import (
 from ..items import stage_id
 from ..regions import regions
 from ..rules import SHOP_TIER_GATES, region_stage_id
-from ..options import ShopHints, SROptions, TrapPercentage
+from ..options import SR_OPTION_GROUPS, ShopHints, SROptions, TrapPercentage
 from ..shop import SHOP_REQS, shop_table
 from . import StickRangerTestBase
 
@@ -507,6 +507,34 @@ class TestStockingRuleNeverStrands(SweepTestBase):
                     self.world_setup(seed=seed)
                     distribute_items_restrictive(self.multiworld)
                     self.assertTrue(self.sweep_like_the_game(bool(progressive)))
+
+
+def visible_option_names() -> list[str]:
+    """Every option a player can set, in yaml order, minus the rolled hidden ones."""
+    return [
+        name
+        for name, option in SROptions.type_hints.items()
+        if name not in PerGameCommonOptions.type_hints and option.visibility is not Visibility.none
+    ]
+
+
+class TestOptionLayout(SweepTestBase):
+    """Every option a player sets sits in exactly one group on the options page."""
+
+    def grouped_names(self) -> list[str]:
+        """Archipelago appends its own item and location group to the list, so skip what is not ours."""
+        names = {
+            option: name
+            for name, option in SROptions.type_hints.items()
+            if name not in PerGameCommonOptions.type_hints
+        }
+        return [names[option] for group in SR_OPTION_GROUPS for option in group.options if option in names]
+
+    def test_every_visible_option_is_grouped_once(self) -> None:
+        """Goal is the one exception: it sits in Archipelago's own top group."""
+        grouped = self.grouped_names()
+        self.assertEqual(len(grouped), len(set(grouped)), "an option is in two groups")
+        self.assertEqual(sorted(grouped), sorted(n for n in visible_option_names() if n != "goal"))
 
 
 class TestSlotData(SweepTestBase):
