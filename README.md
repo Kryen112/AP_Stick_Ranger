@@ -40,15 +40,17 @@ The goal of the game is to complete the Hell Castle stage.
 Checks are send when:
 
 -   You complete a stage
--   You buy a book (when book_shuffle is on)
--   When an AP item from an enemy is dropped and picked up (when enemy_shuffle is on)
+-   You buy a book (when shuffle_books is on)
+-   When an AP item from an enemy is dropped and picked up (when shuffle_enemies is on)
+-   You buy an item in a shop for the first time (when shop_checks is on)
 
 ### Items
 
 You can receive:
 
 -   Stage unlocks
--   Class unlocks (if class_shuffle is enabled)
+-   Class unlocks (if ranger_class_randomizer is enabled)
+-   Progressive Shop items, one track per town (if progressive_shop is enabled)
 -   A random item (any weapon/compo)
 -   Traps (if enabled)
 
@@ -74,23 +76,16 @@ Volcano and Mountaintop are boss rush stages sitting behind the Hell Castle gate
 
 The world map colours each stage dot by the same rules: yellow is in logic,
 orange is unlocked but out of logic, dark red means every check there has been
-sent, and white is a town. `in_logic()` in the web client mirrors
-`stick_ranger/rules.py`, and both repos have a test pinning the region lists so
-they cannot drift apart silently.
+sent, and white is a town. The apworld ships its rules to the client in
+slot_data as a logic description, and the client evaluates that rather than
+carrying rules of its own, so the map and the generator cannot disagree.
 
 ### Options
 
--   Book shuffle
--   Class shuffle
--   Amount of classes to have before each boss stage
--   Enemy shuffle
--   Enemy gold drop value multiplier
--   XP gain multiplier
--   Enemy drop multiplier
--   Book shop hints
--   Book cost randomizer
--   Traps
--   DeathLink
+Every option is documented where you set it: in the `Stick Ranger.yaml`
+template attached to each release, and on the player options page of any host
+with the apworld installed. **Generate Template Options** in the Archipelago
+Launcher writes a fresh template for the apworld you have installed.
 
 ## Saving & Persistence
 
@@ -102,7 +97,8 @@ they cannot drift apart silently.
 -   Auto-save triggers:
     -   Receiving items
     -   Sending checks
-    -   Scouting Book locations (Opening Book shop)
+    -   Scouting Book and shop locations (opening the shop)
+    -   Leaving a stage or a town
 
 ## Building the apworld
 
