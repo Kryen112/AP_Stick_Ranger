@@ -26,7 +26,7 @@ from ..items import (
 from ..items import stage_id
 from ..regions import regions
 from ..rules import SHOP_TIER_GATES, region_stage_id
-from ..options import SROptions, TrapPercentage
+from ..options import ShopHints, SROptions, TrapPercentage
 from ..shop import SHOP_REQS, shop_table
 from . import StickRangerTestBase
 
@@ -586,13 +586,13 @@ class TestEnforceShopLogic(SweepTestBase):
         self.assertEqual(shipped, expected)
 
 
-class TestImportantHintsOnly(SweepTestBase):
+class TestShopHints(SweepTestBase):
     """Purely a client instruction: it must reach the client and change nothing else."""
 
-    options = {"shuffle_books": 1, "shop_checks": 1, "important_hints_only": 1}
+    options = {"shuffle_books": 1, "shop_checks": 1, "shop_hints": "important_only"}
 
     def test_the_client_is_told(self) -> None:
-        self.assertEqual(self.world.fill_slot_data()["important_hints_only"], 1)
+        self.assertEqual(self.world.fill_slot_data()["shop_hints"], ShopHints.option_important_only)
 
     def test_the_seed_still_fills(self) -> None:
         self.assertSeedWorks()
@@ -600,9 +600,15 @@ class TestImportantHintsOnly(SweepTestBase):
     def test_it_does_not_touch_the_item_pool(self) -> None:
         """Hint filtering is presentation, so the seed must be identical without it."""
         quiet = self.pool_counts()
-        self.options = {"shuffle_books": 1, "shop_checks": 1, "important_hints_only": 0}
+        self.options = {"shuffle_books": 1, "shop_checks": 1, "shop_hints": "all"}
         self.world_setup(seed=self.multiworld.seed)
         self.assertEqual(quiet, self.pool_counts())
+
+    def test_the_old_toggle_values_still_parse(self) -> None:
+        """Shop Hints was a toggle until 1.8.12, so yamls out there say true or false."""
+        self.assertEqual(ShopHints.from_any("true").value, ShopHints.option_all)
+        self.assertEqual(ShopHints.from_any("false").value, ShopHints.option_off)
+        self.assertEqual(ShopHints.from_any("important_only").value, ShopHints.option_important_only)
 
 
 class TestTrapDisguise(SweepTestBase):

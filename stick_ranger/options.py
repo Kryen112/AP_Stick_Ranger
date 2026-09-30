@@ -378,29 +378,34 @@ class DropMultiplier(Choice):
     default = 1
 
 
-class ShopHints(DefaultOnToggle):
+class ShopHints(Choice):
     """
-    When enabled, the Book shop and the item shop show you what you are buying
-    and send out hints for it.
+    What the item shop and the Book shop tell you, and the room, about what
+    they sell.
 
-    With this off, a shop item that is still a check reads "AP Item" and only
-    its price is shown.
+    off:            a shop item that is still a check reads "AP Item" and shows
+                    only its price; nothing is hinted.
+    important_only: you see everything; the room is only sent hints for
+                    progression and traps, so a 462-item shop does not bury
+                    everyone else's hints.
+    all:            you see everything and every item is hinted to the room.
     """
 
     display_name = "Shop Hints"
+    option_off = 0
+    option_important_only = 1
+    option_all = 2
+    default = 2
 
-
-class ImportantHintsOnly(Toggle):
-    """
-    When enabled, the shop and the Book shop only send hints to the room for
-    progression and trap items, and stay quiet about filler and useful ones.
-
-    You still see everything yourself; this only decides what the rest of the
-    room is told. A seed with Shop Checks has 462 shop items, and hinting all of
-    them buries every other player's hints.
-    """
-
-    display_name = "Important Hints Only"
+    @classmethod
+    def from_text(cls, text: str) -> Choice:
+        # This was a toggle until 1.8.12, so older yamls say true or false.
+        lowered = text.lower()
+        if lowered in {"on", "true", "yes", "enabled"}:
+            return cls(cls.option_all)
+        if lowered in {"off", "false", "no", "disabled"}:
+            return cls(cls.option_off)
+        return super().from_text(text)
 
 
 class TrapDisguise(Toggle):
@@ -622,7 +627,6 @@ class SROptions(PerGameCommonOptions):
     xp_multiplier: XPMultiplier
     drop_multiplier: DropMultiplier
     shop_hints: ShopHints
-    important_hints_only: ImportantHintsOnly
     trap_disguise: TrapDisguise
     randomize_book_costs: BookCostRandomizer
     trap_percentage: TrapPercentage

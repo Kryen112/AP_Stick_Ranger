@@ -72,7 +72,6 @@ SLOT_DATA_OPTIONS: tuple[str, ...] = (
     "drop_multiplier",
     "randomize_book_costs",
     "shop_hints",
-    "important_hints_only",
     "trap_disguise",
     "trap_percentage",
     "free_respec",
