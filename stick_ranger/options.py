@@ -415,9 +415,10 @@ class TrapDisguise(Toggle):
     Shoppe", "Mothwing Cloack".
 
     It reads as a real item at a glance and gives itself away only if you look
-    properly, in the spirit of Ocarina of Time's ice traps. This only changes
-    what you are shown -- anyone else scouting that location still sees the trap
-    for what it is.
+    properly, in the spirit of Ocarina of Time's ice traps. While it is on the
+    shops never send a hint for a trap, since the hint would carry its real
+    name; that quiet is itself a small tell, but a smaller one. Anyone else
+    scouting the location by other means still sees the trap for what it is.
     """
 
     display_name = "Trap Disguise"
