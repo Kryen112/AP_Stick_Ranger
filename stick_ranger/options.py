@@ -321,7 +321,7 @@ class StagesReqForHellCastle(Range):
 class ShuffleBooks(DefaultOnToggle):
     """
     Controls whether buying Books are checks.
-    Either Shuffle Books or Shuffle Enemies needs to be turned on.
+    At least one of Shuffle Books, Shuffle Enemies or Shop Checks needs to be on.
     """
 
     display_name = "Shuffle Books"
@@ -330,7 +330,7 @@ class ShuffleBooks(DefaultOnToggle):
 class ShuffleEnemies(Choice):
     """
     Controls whether enemies drop a check.
-    Either Shuffle Enemies or Shuffle Books needs to be turned on.
+    At least one of Shuffle Books, Shuffle Enemies or Shop Checks needs to be on.
 
     common enemies: Every non-boss enemy has a 5% chance to drop.
     boss enemies:   Every boss enemy has a 25% chance to drop.

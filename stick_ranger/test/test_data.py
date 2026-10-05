@@ -14,11 +14,11 @@ from . import StickRangerTestBase
 
 STAGE_ITEM_OFFSET = 11000
 
-# The stage ids the client counts per region, mirrored from LOGIC_REGION_STAGES
-# in game.js. Keeping this list here is the point: if either side drifts, one of
-# these repos fails its own tests instead of the map quietly telling players a
-# stage is in logic when Archipelago disagrees.
-CLIENT_LOGIC_REGION_STAGES: dict[str, list[int]] = {
+# The stage ids each boss gate counts, pinned as literals. The option docstrings
+# name these stages and logic_description() ships the same lists to the client,
+# so an edit to the item table that moved a stage between regions, or into a
+# boss slot, fails here instead of quietly changing what a gate asks for.
+REGION_STAGE_IDS: dict[str, list[int]] = {
     "Grassland": [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19],
     "Sea": [21, 22, 23, 24, 25, 26, 27, 28, 30, 31, 32, 33],
     "Desert": [34, 35, 36, 37, 38, 39, 40, 41, 43, 44, 45, 46],
@@ -99,24 +99,24 @@ class TestData(StickRangerTestBase):
         for ranger_class in classes:
             self.assertIs(ranger_class.classification, ItemClassification.progression)
 
-    def test_region_unlock_counts_match_the_client(self) -> None:
+    def test_region_unlock_ids_are_pinned(self) -> None:
         """
         The per-region unlock lists are the denominators of the 'stages required
-        for <boss>' options, and the client counts exactly the same stages.
+        for <boss>' options, so a change to them is a change to every gate.
         """
-        for region, expected_ids in CLIENT_LOGIC_REGION_STAGES.items():
+        for region, expected_ids in REGION_STAGE_IDS.items():
             stage_ids = sorted(
                 item_table[name].code - STAGE_ITEM_OFFSET for name in unlocks_by_region[region]
             )
             self.assertEqual(
                 stage_ids,
                 expected_ids,
-                f"{region} unlocks drifted from the client's LOGIC_REGION_STAGES",
+                f"{region} unlocks drifted from the pinned stage ids",
             )
 
     def test_boss_stages_do_not_count_towards_themselves(self) -> None:
         boss_ids = {
             item_table[name].code - STAGE_ITEM_OFFSET for name in unlocks_by_region["Boss"]
         }
-        counted = {i for ids in CLIENT_LOGIC_REGION_STAGES.values() for i in ids}
+        counted = {i for ids in REGION_STAGE_IDS.values() for i in ids}
         self.assertEqual(boss_ids & counted, set())

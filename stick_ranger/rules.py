@@ -9,9 +9,11 @@ A gate opens when you hold that boss stage's own unlock, enough unlocks from the
 region in front of it, and enough ranger classes. Ordinary stages in a region
 need their own unlock plus the gate of the boss that guards the region.
 
-The client's world map colours stages with the same rules (in_logic() in
-game.js). Anything that changes here has to change there too, or the map starts
-promising checks Archipelago does not think are reachable.
+The web client holds no copy of these rules. logic_description() at the bottom
+turns them into data that ships in slot_data, and the client's in_logic()
+evaluates that, so a change here reaches the world map through the seed rather
+than through a second edit. Only the shape of the description is shared, and
+LOGIC_VERSION says which shape this is.
 """
 
 from __future__ import annotations

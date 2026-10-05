@@ -803,8 +803,8 @@ item_table: dict[str, ItemData] = {item.item_name: item for item in item_list}
 items_by_id: dict[int, ItemData] = {item.code: item for item in item_list}
 
 # Progression stage unlocks per region. The length of each list is the ceiling of
-# the matching "stages required for <boss>" option, and the client counts the
-# same stages -- see LOGIC_REGION_STAGES in game.js.
+# the matching "stages required for <boss>" option, and logic_description() in
+# rules.py ships the same lists to the client as stage ids.
 unlocks_by_region: dict[str, list[str]] = {}
 for stage in stages:
     if stage.classification is ItemClassification.progression:
