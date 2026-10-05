@@ -117,6 +117,7 @@ class StickRanger(World):
         restored = self._tracker_passthrough()
         if restored is not None:
             self._restore_options(restored)
+        self._migrate_legacy_options()
         self._validate_options()
         self._resolve_shop_options()
         self._resolve_ring_options()
@@ -157,6 +158,22 @@ class StickRanger(World):
         for option_name in SLOT_DATA_OPTIONS:
             if option_name in slot_data:
                 getattr(self.options, option_name).value = slot_data[option_name]
+
+    def _migrate_legacy_options(self) -> None:
+        """
+        Fold the 1.8 yaml keys into the options that replaced them.
+
+        `traps` became Trap Percentage and `important_hints_only` became a value
+        of Shop Hints. Archipelago only warns about a key it does not know, so a
+        yaml still using the old ones would otherwise generate with no traps and
+        every shop item hinted, and nobody would see why. The old key only
+        counts while the new one is still at its default.
+        """
+        if self.options.traps.value and not self.options.trap_percentage.value:
+            self.options.trap_percentage.value = self.options.traps.value
+        shop_hints = self.options.shop_hints
+        if self.options.important_hints_only and shop_hints.value == shop_hints.option_all:
+            shop_hints.value = shop_hints.option_important_only
 
     def _validate_options(self) -> None:
         """Raise unless something in the seed actually produces checks."""

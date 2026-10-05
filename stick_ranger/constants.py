@@ -87,6 +87,10 @@ SLOT_DATA_OPTIONS: tuple[str, ...] = (
     "death_link",
 )
 
+# The 1.8 yaml keys that generate_early folds into the options that replaced
+# them. Hidden, never shipped, and never meant to be read by the client.
+LEGACY_OPTIONS: tuple[str, ...] = ("traps", "important_hints_only")
+
 ENEMIES_OPTION_NON_BOSS: int = 1
 ENEMIES_OPTION_BOSS: int = 2
 ENEMIES_OPTION_ALL: int = 3

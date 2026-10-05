@@ -13,7 +13,7 @@ from BaseClasses import CollectionState
 from Fill import distribute_items_restrictive
 from Options import OptionError, PerGameCommonOptions, Visibility
 
-from ..constants import GOAL_OPTIONS_MAP, SLOT_DATA_OPTIONS
+from ..constants import GOAL_OPTIONS_MAP, LEGACY_OPTIONS, SLOT_DATA_OPTIONS
 from ..items import (
     PROGRESSIVE_SHOP_COUNTS,
     PROGRESSIVE_SHOPS,
@@ -140,6 +140,47 @@ class TestTrapSweep(SweepTestBase):
         self.assertEqual(TrapPercentage.from_any("none").value, 0)
         self.assertEqual(TrapPercentage.from_any("20").value, 20)
         self.assertEqual(TrapPercentage.from_any(5).value, 5)
+
+
+class TestLegacyYamlKeys(SweepTestBase):
+    """
+    A 1.8 yaml still says `traps:` and `important_hints_only:`. Archipelago only
+    warns about a key it does not know, so without these the yaml would generate
+    with no traps and every shop item hinted, and nobody would see why.
+    """
+
+    def test_traps_is_read_as_a_percentage(self) -> None:
+        self.options = {"shuffle_books": 1, "traps": 20}
+        self.world_setup()
+        self.assertEqual(self.world.options.trap_percentage.value, 20)
+        self.assertEqual(self.world.fill_slot_data()["trap_percentage"], 20)
+
+    def test_traps_none_still_means_none(self) -> None:
+        self.options = {"shuffle_books": 1, "traps": "none"}
+        self.world_setup()
+        self.assertEqual(self.world.options.trap_percentage.value, 0)
+
+    def test_the_new_key_wins_when_both_are_set(self) -> None:
+        self.options = {"shuffle_books": 1, "traps": 20, "trap_percentage": 50}
+        self.world_setup()
+        self.assertEqual(self.world.options.trap_percentage.value, 50)
+
+    def test_important_hints_only_folds_into_shop_hints(self) -> None:
+        self.options = {"shuffle_books": 1, "shop_hints": "true", "important_hints_only": "true"}
+        self.world_setup()
+        self.assertEqual(self.world.options.shop_hints.value, ShopHints.option_important_only)
+
+    def test_important_hints_only_does_not_turn_hints_back_on(self) -> None:
+        self.options = {"shuffle_books": 1, "shop_hints": "false", "important_hints_only": "true"}
+        self.world_setup()
+        self.assertEqual(self.world.options.shop_hints.value, ShopHints.option_off)
+
+    def test_the_old_keys_never_reach_the_client(self) -> None:
+        self.options = {"shuffle_books": 1, "traps": 20, "important_hints_only": "true"}
+        self.world_setup()
+        slot_data = self.world.fill_slot_data()
+        for name in LEGACY_OPTIONS:
+            self.assertNotIn(name, slot_data, f"{name} is a yaml key, not a client option")
 
 
 class TestClassRandomizerSweep(SweepTestBase):
@@ -558,13 +599,15 @@ class TestSlotData(SweepTestBase):
 
         The bounds the stage gates are rolled between stay out on purpose; the
         rolled result ships instead. Archipelago's own common options stay out
-        because the server applies them.
+        because the server applies them, and the hidden 1.8 yaml keys stay out
+        because generate_early folds them into the options that replaced them.
         """
         return {
             name
             for name in SROptions.type_hints
             if not name.startswith(("min_stages_req_", "max_stages_req_"))
             and name not in PerGameCommonOptions.type_hints
+            and name not in LEGACY_OPTIONS
         }
 
     def test_every_option_reaches_the_client(self) -> None:

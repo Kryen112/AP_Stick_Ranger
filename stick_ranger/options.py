@@ -606,6 +606,28 @@ class RemovableCompos(Toggle):
     display_name = "Removable Compos"
 
 
+# The 1.8 yaml keys of two options that have since changed shape. Hidden, so
+# nothing offers them, but a yaml that still carries them is read instead of
+# being warned about and ignored: Archipelago only logs an unknown key, and the
+# seed would have generated with no traps and every shop item hinted.
+# generate_early folds each into the option that replaced it.
+class LegacyTraps(TrapPercentage):
+    """
+    The old name of Trap Percentage. `traps: 20` meant twenty percent and
+    `traps: none` meant none, and both still do.
+    """
+
+    display_name = "Traps (old name of Trap Percentage)"
+    visibility = Visibility.none
+
+
+class LegacyImportantHintsOnly(Toggle):
+    """The old toggle that is now the `important_only` value of Shop Hints."""
+
+    display_name = "Important Hints Only (old form of Shop Hints)"
+    visibility = Visibility.none
+
+
 @dataclass
 class SROptions(PerGameCommonOptions):
     # Field order is the order of the yaml template, and SR_OPTION_GROUPS below
@@ -661,6 +683,9 @@ class SROptions(PerGameCommonOptions):
     ring_link_ratio: RingLinkRatio
     ring_gold: RingGold
     death_link: DeathLink
+    # 1.8 yaml keys, hidden and folded into the options above; see LegacyTraps.
+    traps: LegacyTraps
+    important_hints_only: LegacyImportantHintsOnly
 
 
 # Layout for the WebHost player-options page, in the same order as the yaml
