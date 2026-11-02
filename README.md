@@ -33,7 +33,14 @@
 
 ### Goal
 
-The goal of the game is to complete the Hell Castle stage.
+Clear the boss stage your yaml picks: Castle, Submarine Shrine, Pyramid, Ice
+Castle, Mountaintop, Hell Castle (the default) or Volcano, or a mix of the last
+three.
+
+Everything past your goal is cut from the seed: those stages, their books,
+enemies and shop rows hold no checks, and their unlocks are never handed out.
+Boss stages beside your goal that it does not need stay playable, but only ever
+hold filler. Once you goal, every stage past it opens for free play.
 
 ### Locations
 
@@ -59,6 +66,7 @@ You can receive:
 Five boss stages gate the game, each waiting on the one before it:
 
     Castle -> Submarine Shrine -> Pyramid -> Ice Castle -> Hell Castle
+                                         `-> Mountaintop
 
 A boss opens once you hold its own stage unlock, enough stage unlocks from the
 region in front of it, and enough ranger classes (your starting class counts).
@@ -69,10 +77,12 @@ The stages counted per boss are:
 | Castle           | pre-Castle stages  | 17     |
 | Submarine Shrine | sea stages         | 12     |
 | Pyramid          | desert stages      | 12     |
-| Ice Castle       | ice stages         | 14     |
-| Hell Castle      | hell stages        | 22     |
+| Ice Castle       | ice stages         | 15     |
+| Hell Castle      | hell stages        | 21     |
 
-Volcano and Mountaintop are boss rush stages sitting behind the Hell Castle gate.
+Mountaintop sits in the snow, so it branches off Pyramid and asks for what Ice
+Castle asks, bar Ice Castle's own unlock. Volcano is a boss rush stage sitting
+behind the Hell Castle gate.
 
 The world map colours each stage dot by the same rules: yellow is in logic,
 orange is unlocked but out of logic, dark red means every check there has been
@@ -89,7 +99,7 @@ Launcher writes a fresh template for the apworld you have installed.
 
 ## Saving & Persistence
 
--   **Save state is on Archipelago's DataStorage** 
+-   **Save state is on Archipelago's DataStorage**
 -   **Key structure**:
     ```
     Stick Ranger:[slotName]:[seed]

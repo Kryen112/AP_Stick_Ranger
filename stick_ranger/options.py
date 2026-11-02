@@ -7,6 +7,7 @@ from Options import (
     DeathLink,
     DefaultOnToggle,
     OptionGroup,
+    OptionSet,
     PerGameCommonOptions,
     Range,
     Toggle,
@@ -16,17 +17,38 @@ from Options import (
 
 class Goal(Choice):
     """
-    Pick a Goal to finish the game.
-    Hell Castle is the usual finish of the game, being the last stage to beat.
-    Volcano and Mountaintop are boss rush stages and are therefore regarded has more difficult stages than Hell Castle.
+    The boss stage you have to beat to finish.
+
+    castle:           beat Castle.
+    submarine_shrine: beat Submarine Shrine.
+    pyramid:          beat Pyramid.
+    ice_castle:       beat Ice Castle.
+    mountaintop:      beat the Mountaintop boss rush, up the mountain in the
+                      snow.
+    hell_castle:      beat Hell Castle, the game's usual ending.
+    volcano:          beat the Volcano boss rush, past Hell Castle.
+    The combined goals ask for each boss they name; "all" is Hell Castle,
+    Volcano and Mountaintop.
+
+    Everything past your goal is cut from the seed: those stages, their books,
+    enemies and shop rows hold no checks and their unlocks are never handed
+    out. Boss stages beside your goal that it does not need -- Hell Castle,
+    Volcano and Mountaintop, and Ice Castle with a Mountaintop goal -- stay
+    playable but only ever hold filler.
     """
 
+    # The values are listed by run length, shortest first. Their numbers are
+    # not: 0-6 predate the early goals and old yamls still carry them.
     display_name = "Goal"
+    option_castle = 7
+    option_submarine_shrine = 8
+    option_pyramid = 9
+    option_ice_castle = 10
+    option_mountaintop = 2
     option_hell_castle = 0
     option_volcano = 1
-    option_mountaintop = 2
-    option_hell_castle_and_volcano = 3
     option_hell_castle_and_mountaintop = 4
+    option_hell_castle_and_volcano = 3
     option_volcano_and_mountaintop = 5
     option_all = 6
     default = 0
@@ -61,6 +83,26 @@ class RangerClassSelector(Choice):
     default = "random"
 
 
+class SurplusClasses(Choice):
+    """
+    What happens to the Classes your goal does not need, with Class Randomizer
+    on. Your goal needs as many Classes as its "Classes required" option says;
+    the rest are surplus, picked at random.
+
+    in_pool:    every Class can still be found.
+    removed:    only the Classes your goal needs can be found; the rest stay
+                locked for the whole run.
+    start_with: you start with every surplus Class. Since every Class you hold
+                counts, this meets every Class requirement from the start.
+    """
+
+    display_name = "Surplus Classes"
+    option_in_pool = 0
+    option_removed = 1
+    option_start_with = 2
+    default = 0
+
+
 class CastleClassUnlocks(Range):
     """
     Number of Ranger Classes you must have before entering the Castle stage.
@@ -79,8 +121,8 @@ class SubmarineShrineClassUnlocks(Range):
     """
     Number of Ranger Classes you must have before entering the Submarine Shrine stage.
     Your starting class counts towards this, so 1 means "no extra classes needed".
-    Ignored unless Class Randomizer is enabled, and raised to match an earlier
-    boss stage that asks for more.
+    Ignored unless Class Randomizer is enabled, or when your goal comes before
+    this boss, and raised to match an earlier boss stage that asks for more.
     """
 
     display_name = "Classes required for Submarine Shrine"
@@ -93,8 +135,8 @@ class PyramidClassUnlocks(Range):
     """
     Number of Ranger Classes you must have before entering the Pyramid stage.
     Your starting class counts towards this, so 1 means "no extra classes needed".
-    Ignored unless Class Randomizer is enabled, and raised to match an earlier
-    boss stage that asks for more.
+    Ignored unless Class Randomizer is enabled, or when your goal comes before
+    this boss, and raised to match an earlier boss stage that asks for more.
     """
 
     display_name = "Classes required for Pyramid"
@@ -105,10 +147,11 @@ class PyramidClassUnlocks(Range):
 
 class IceCastleClassUnlocks(Range):
     """
-    Number of Ranger Classes you must have before entering the Ice Castle stage.
+    Number of Ranger Classes you must have before entering the Ice Castle stage,
+    and the Mountaintop stage.
     Your starting class counts towards this, so 1 means "no extra classes needed".
-    Ignored unless Class Randomizer is enabled, and raised to match an earlier
-    boss stage that asks for more.
+    Ignored unless Class Randomizer is enabled, or when your goal comes before
+    this boss, and raised to match an earlier boss stage that asks for more.
     """
 
     display_name = "Classes required for Ice Castle"
@@ -121,8 +164,8 @@ class HellCastleClassUnlocks(Range):
     """
     Number of Ranger Classes you must have before entering the Hell Castle stage.
     Your starting class counts towards this, so 1 means "no extra classes needed".
-    Ignored unless Class Randomizer is enabled, and raised to match an earlier
-    boss stage that asks for more.
+    Ignored unless Class Randomizer is enabled, or when your goal comes before
+    this boss, and raised to match an earlier boss stage that asks for more.
     """
 
     display_name = "Classes required for Hell Castle"
@@ -244,25 +287,27 @@ class StagesReqForPyramid(Range):
 
 class IceCastleMinimumStagesUnlocks(Range):
     """
-    Minimum number of pre-Ice Castle stages you must unlock before entering the Ice Castle stage.
-    Pre-Ice Castle stages are: Cavern 4-6, Snowfield 1-8, Mountain 1&2 and Frozen Lake.
+    Minimum number of pre-Ice Castle stages you must unlock before entering the
+    Ice Castle stage, and the Mountaintop stage.
+    Pre-Ice Castle stages are: Cavern 4-6, Snowfield 1-8, Mountain 1&2, Frozen Lake and !!!.
     """
 
     display_name = "Minimum number of required pre-Ice Castle stages"
     range_start = 0
-    range_end = 14
+    range_end = 15
     default = 5
 
 
 class IceCastleMaximumStagesUnlocks(Range):
     """
-    Maximum number of pre-Ice Castle stages you must unlock before entering the Ice Castle stage.
-    Pre-Ice Castle stages are: Cavern 4-6, Snowfield 1-8, Mountain 1&2 and Frozen Lake.
+    Maximum number of pre-Ice Castle stages you must unlock before entering the
+    Ice Castle stage, and the Mountaintop stage.
+    Pre-Ice Castle stages are: Cavern 4-6, Snowfield 1-8, Mountain 1&2, Frozen Lake and !!!.
     """
 
     display_name = "Maximum number of required pre-Ice Castle stages"
     range_start = 0
-    range_end = 14
+    range_end = 15
     default = 8
 
 
@@ -275,37 +320,56 @@ class StagesReqForIceCastle(Range):
     display_name = "Actual number of required pre-Ice Castle stages"
     visibility = Visibility.none
     range_start = 0
-    range_end = 14
+    range_end = 15
     default = 5
 
 
-class HellCastleMinimumStagesUnlocks(Range):
+class HellRegionRange(Range):
+    """A pre-Hell Castle stage count, which old yamls may set one too high."""
+
+    @classmethod
+    def from_any(cls, data: object) -> Range:
+        # !!! used to count as a Hell stage, so 22 was the whole region. A yaml
+        # still saying 22 means "all of them": read it as the new maximum
+        # instead of refusing to generate.
+        if type(data) is int and data > cls.range_end:
+            data = cls.range_end
+        return super().from_any(data)
+
+    @classmethod
+    def from_text(cls, text: str) -> Range:
+        if text.strip().isdigit() and int(text) > cls.range_end:
+            return cls(cls.range_end)
+        return super().from_text(text)
+
+
+class HellCastleMinimumStagesUnlocks(HellRegionRange):
     """
     Minimum number of pre-Hell Castle stages you must unlock before entering the Hell Castle stage.
-    Pre-Hell Castle stages are: Snowfield 9, Beach 4, Forest 3-6, !!!, Hell 1-8,
+    Pre-Hell Castle stages are: Snowfield 9, Beach 4, Forest 3-6, Hell 1-8,
     Inferno 1-3, Blood Lake, Cavern 7&8 and Hell Gate.
     """
 
     display_name = "Minimum number of required pre-Hell Castle stages"
     range_start = 0
-    range_end = 22
+    range_end = 21
     default = 7
 
 
-class HellCastleMaximumStagesUnlocks(Range):
+class HellCastleMaximumStagesUnlocks(HellRegionRange):
     """
     Maximum number of pre-Hell Castle stages you must unlock before entering the Hell Castle stage.
-    Pre-Hell Castle stages are: Snowfield 9, Beach 4, Forest 3-6, !!!, Hell 1-8,
+    Pre-Hell Castle stages are: Snowfield 9, Beach 4, Forest 3-6, Hell 1-8,
     Inferno 1-3, Blood Lake, Cavern 7&8 and Hell Gate.
     """
 
     display_name = "Maximum number of required pre-Hell Castle stages"
     range_start = 0
-    range_end = 22
+    range_end = 21
     default = 12
 
 
-class StagesReqForHellCastle(Range):
+class StagesReqForHellCastle(HellRegionRange):
     """
     Actual number of required pre-Hell Castle stages to beat.
     Only used for rules and tracking.
@@ -314,7 +378,7 @@ class StagesReqForHellCastle(Range):
     display_name = "Actual number of required pre-HellCastle stages"
     visibility = Visibility.none
     range_start = 0
-    range_end = 22
+    range_end = 21
     default = 7
 
 
@@ -561,6 +625,20 @@ class ProgressiveShop(Toggle):
     display_name = "Progressive Shop"
 
 
+class TownsInPool(OptionSet):
+    """
+    Which towns can be unlocked. A town left out never opens, so its shop
+    cannot be visited and any Shop Checks in it are gone.
+
+    Town is where you start and is always open; the Forget Tree is not part of
+    this. A town past your goal is left out whatever this says.
+    """
+
+    display_name = "Towns in Pool"
+    valid_keys = frozenset({"Village", "Resort", "Island"})
+    default = frozenset({"Village", "Resort", "Island"})
+
+
 class EnforceShopLogic(Toggle):
     """
     When enabled, a shop item that Archipelago does not consider reachable yet
@@ -606,6 +684,35 @@ class RemovableCompos(Toggle):
     display_name = "Removable Compos"
 
 
+class CapLootAtGoal(DefaultOnToggle):
+    """
+    When enabled, weapons and compos handed out as filler are never stronger
+    than what drops in your goal's own area.
+
+    Tiers 1-2 drop around Castle, 3 around Submarine Shrine, 4-5 around
+    Pyramid, 6 around Ice Castle and Mountaintop, and 7-8 in Hell. So a Castle
+    goal never hands out more than tier 2. Does nothing with a Hell Castle or
+    Volcano goal.
+    """
+
+    display_name = "Cap Loot at Goal"
+
+
+class ScaleLootWithProgress(Toggle):
+    """
+    When enabled, weapons and compos handed out as filler grow stronger as the
+    run opens up, so an early check cannot hand you an endgame weapon.
+
+    Filler is held to the tier of the furthest boss you could have reached by
+    the time Archipelago expects you to find it: tier 2 or lower before Castle
+    opens, 3 once it has, 5 after Submarine Shrine, 6 after Pyramid, and
+    anything after Ice Castle. This counts your own world's progress wherever
+    the item is found, including in other players' games.
+    """
+
+    display_name = "Scale Loot with Progress"
+
+
 # The 1.8 yaml keys of two options that have since changed shape. Hidden, so
 # nothing offers them, but a yaml that still carries them is read instead of
 # being warned about and ignored: Archipelago only logs an unknown key, and the
@@ -640,9 +747,11 @@ class SROptions(PerGameCommonOptions):
     shop_checks: ShopChecks
     progressive_shop: ProgressiveShop
     randomize_book_costs: BookCostRandomizer
+    towns_in_pool: TownsInPool
     # Ranger classes
     ranger_class_randomizer: RangerClassRandomizer
     ranger_class_selected: RangerClassSelector
+    surplus_classes: SurplusClasses
     classes_req_for_castle: CastleClassUnlocks
     classes_req_for_submarine_shrine: SubmarineShrineClassUnlocks
     classes_req_for_pyramid: PyramidClassUnlocks
@@ -678,6 +787,9 @@ class SROptions(PerGameCommonOptions):
     free_respec: FreeRespec
     remove_null_compo: RemoveNullCompo
     removable_compos: RemovableCompos
+    # Loot
+    cap_loot_at_goal: CapLootAtGoal
+    scale_loot_with_progress: ScaleLootWithProgress
     # Links
     ring_link: RingLink
     ring_link_ratio: RingLinkRatio
@@ -695,13 +807,14 @@ class SROptions(PerGameCommonOptions):
 SR_OPTION_GROUPS: list[OptionGroup] = [
     OptionGroup(
         "Checks",
-        [ShuffleBooks, ShuffleEnemies, ShopChecks, ProgressiveShop, BookCostRandomizer],
+        [ShuffleBooks, ShuffleEnemies, ShopChecks, ProgressiveShop, BookCostRandomizer, TownsInPool],
     ),
     OptionGroup(
         "Ranger Classes",
         [
             RangerClassRandomizer,
             RangerClassSelector,
+            SurplusClasses,
             CastleClassUnlocks,
             SubmarineShrineClassUnlocks,
             PyramidClassUnlocks,
@@ -735,6 +848,10 @@ SR_OPTION_GROUPS: list[OptionGroup] = [
     OptionGroup(
         "Quality of Life",
         [GoldMultiplier, XPMultiplier, DropMultiplier, FreeRespec, RemoveNullCompo, RemovableCompos],
+    ),
+    OptionGroup(
+        "Loot",
+        [CapLootAtGoal, ScaleLootWithProgress],
     ),
     OptionGroup(
         "Links",

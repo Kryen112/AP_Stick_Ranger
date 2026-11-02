@@ -7,6 +7,7 @@ from BaseClasses import (
     ItemClassification,
     Location,
     LocationProgressType,
+    MultiWorld,
     Region,
     Tutorial,
 )
@@ -19,7 +20,6 @@ from .constants import (
     ENEMIES_OPTION_ALL,
     ENEMIES_OPTION_BOSS,
     ENEMIES_OPTION_NON_BOSS,
-    GOAL_LOCATIONS,
     GOAL_OPTIONS_MAP,
     OPENING_STREET_BOOK,
     OPENING_STREET_BOSS,
@@ -31,19 +31,20 @@ from .constants import (
     STARTER_UNLOCK_CHOICES,
 )
 from .items import (
+    FILLER_TIER,
     PROGRESSIVE_SHOPS,
-    PROGRESSIVE_SHOP_COUNTS,
     SHOP_PROGRESSION_FIRST,
     SHOP_PROGRESSION_STEPS,
     SHOP_TOWN_UNLOCKS,
     SRItem,
-    filler,
     item_name_groups,
     item_table,
+    stage_id,
     stages,
     traps,
 )
 from .base import LocationDict, SRLocation
+from .goal import TOWN_AREAS, GoalScope, filler_within, loot_tier_cap
 from .locations import (
     books_table,
     enemies_table,
@@ -55,7 +56,7 @@ from .options import SR_OPTION_GROUPS, SROptions
 from .shop import shop_table
 from .regions import TOWN_REGIONS, regions
 from .client import launch_client
-from .rules import logic_description, set_region_rules, set_shop_rules
+from .rules import CHAIN_BOSSES, logic_description, set_region_rules, set_shop_rules
 
 components.append(
     Component(
@@ -104,8 +105,10 @@ class StickRanger(World):
     item_name_groups = item_name_groups
     location_name_groups = location_name_groups
 
-    excluded_locations: set[str]
     location_count: int
+    scope: GoalScope
+    filler_names: list[str]
+    gates: dict[str, Callable[[CollectionState], bool]]
 
     # Universal Tracker can rebuild the world from slot_data alone, with no
     # yaml: every option ships, and generate_early reads them all back.
@@ -121,7 +124,10 @@ class StickRanger(World):
         self._validate_options()
         self._resolve_shop_options()
         self._resolve_ring_options()
-        self.excluded_locations = self._compute_excluded_locations()
+        self.scope = GoalScope(self.options.goal.value)
+        self.filler_names = filler_within(
+            self.scope.loot_tier_cap if self.options.cap_loot_at_goal else max(FILLER_TIER.values())
+        )
         if restored is None:
             self._resolve_class_requirements()
             self._roll_stage_requirements()
@@ -157,7 +163,11 @@ class StickRanger(World):
         """
         for option_name in SLOT_DATA_OPTIONS:
             if option_name in slot_data:
-                getattr(self.options, option_name).value = slot_data[option_name]
+                value = slot_data[option_name]
+                # JSON has no sets, so an OptionSet comes back as a list.
+                if isinstance(value, list):
+                    value = set(value)
+                getattr(self.options, option_name).value = value
 
     def _migrate_legacy_options(self) -> None:
         """
@@ -206,19 +216,6 @@ class StickRanger(World):
         if not self.options.ring_link:
             self.options.ring_gold.value = 0
 
-    def _compute_excluded_locations(self) -> set[str]:
-        """
-        Locations belonging to a boss stage this seed's goal does not use.
-
-        Every boss stage stays playable whatever the goal is -- this only keeps
-        progression out of the ones you were never asked to finish.
-        """
-        allowed: set[str] = set()
-        for goal in GOAL_OPTIONS_MAP[self.options.goal.value]:
-            allowed.update(GOAL_LOCATIONS[goal])
-        every_goal_location: set[str] = set().union(*GOAL_LOCATIONS.values())
-        return every_goal_location - allowed
-
     def _resolve_class_requirements(self) -> None:
         """
         Turn the raw 'classes required' options into the values the rules use.
@@ -264,9 +261,13 @@ class StickRanger(World):
         self.multiworld.regions += [menu, world_map]
         menu.connect(world_map, WORLD_MAP)
 
-        for region_name in [*regions, *(TOWN_REGIONS if self.options.shop_checks else [])]:
+        towns = [town for town in TOWN_REGIONS if self._town_in_play(town)]
+        for region_name in [*regions, *(towns if self.options.shop_checks else [])]:
             region = Region(region_name, self.player, self.multiworld)
-            region.add_locations(self._locations_in(region_name), SRLocation)
+            # A stage past the goal keeps its region, so the gates and Town's
+            # stocking rule can still name it, but holds nothing to check.
+            if not self.scope.is_cut(region_name):
+                region.add_locations(self._locations_in(region_name), SRLocation)
             self.multiworld.regions.append(region)
             # rules.py replaces most of these; Opening Street is free, and the
             # pre-Castle stages never need more than their own unlock.
@@ -278,7 +279,7 @@ class StickRanger(World):
                 else self._unlock_rule(region_name),
             )
 
-        self._exclude_non_goal_locations()
+        self._exclude_side_boss_locations()
         self.location_count = len(self.multiworld.get_locations(self.player))
 
     def _locations_in(self, region_name: str) -> dict[str, int]:
@@ -300,8 +301,20 @@ class StickRanger(World):
                 )
             )
         if self.options.shop_checks:
-            found.update(self._filter(shop_table, region_name))
+            found.update(
+                self._filter(
+                    shop_table,
+                    region_name,
+                    lambda loc: not self.scope.is_shop_check_cut(loc),
+                )
+            )
         return found
+
+    def _town_in_play(self, town: str) -> bool:
+        """Town always is; the others only when the yaml keeps them and the goal reaches them."""
+        if town not in TOWN_AREAS:
+            return True
+        return town in self.options.towns_in_pool.value and not self.scope.is_cut(town)
 
     @staticmethod
     def _filter(
@@ -318,10 +331,15 @@ class StickRanger(World):
     def _unlock_rule(self, region_name: str) -> Callable[[CollectionState], bool]:
         return lambda state: state.has(f"Unlock {region_name}", self.player)
 
-    def _exclude_non_goal_locations(self) -> None:
-        """Keep progression out of boss stages this seed's goal does not use."""
+    def _exclude_side_boss_locations(self) -> None:
+        """
+        Keep progression out of boss stages this seed's goal does not use.
+
+        They stay playable, so a Hell Castle goal can still take on Volcano for
+        fun, but nothing anyone needs is ever waiting there.
+        """
         for location in self.multiworld.get_locations(self.player):
-            if location.name in self.excluded_locations:
+            if self.scope.is_side_boss(location.parent_region.name):
                 location.progress_type = LocationProgressType.EXCLUDED
 
     def set_rules(self) -> None:
@@ -329,9 +347,9 @@ class StickRanger(World):
         self.multiworld.completion_condition[self.player] = lambda state: all(
             state.can_reach_location(f"{goal}: Exit", self.player) for goal in goal_exits
         )
-        gates = set_region_rules(self.player, self.multiworld, self.options)
+        self.gates = set_region_rules(self.player, self.multiworld, self.options)
         if self.options.shop_checks:
-            set_shop_rules(self.player, self.multiworld, self.options, gates)
+            set_shop_rules(self.player, self.multiworld, self.options, self.gates)
 
     # ------------------------------------------------------------------ items
 
@@ -354,7 +372,7 @@ class StickRanger(World):
         return default
 
     def get_filler_item_name(self) -> str:
-        return self.random.choice(filler).item_name
+        return self.random.choice(self.filler_names)
 
     def create_items(self) -> None:
         self._place_starter_unlock()
@@ -362,16 +380,13 @@ class StickRanger(World):
         itempool: list[SRItem] = []
 
         if self.options.ranger_class_randomizer:
-            itempool.extend(
-                self.create_item(f"Unlock {ranger_class} Class")
-                for ranger_class in RANGER_CLASSES
-                if ranger_class != self.options.ranger_class_selected.value
-            )
+            itempool.extend(self.create_item(name) for name in self._class_unlocks())
 
         itempool.extend(
             self.create_item(unlock.item_name)
             for unlock in stages
             if unlock.item_name != self.starter_item_name
+            and self._unlock_in_pool(unlock.item_name.removeprefix("Unlock "))
             # Class Randomizer starts you at the Forget Tree so you can swap
             # classes, so its unlock would be a dud item.
             and not (
@@ -382,6 +397,13 @@ class StickRanger(World):
 
         if self.options.progressive_shop:
             itempool.extend(self.create_item(name) for name in self._progressive_shop_items())
+
+        if len(itempool) > self.location_count:
+            raise OptionError(
+                f"Stick Ranger: {self.player_name}'s options leave {self.location_count} "
+                f"checks for {len(itempool)} unlocks. Turn on more of Shuffle Books, "
+                f"Shuffle Enemies or Shop Checks, or pick a later goal."
+            )
 
         itempool.extend(self._create_traps(self.location_count - len(itempool)))
         while len(itempool) < self.location_count:
@@ -410,18 +432,56 @@ class StickRanger(World):
         location.place_locked_item(self.create_item(self.starter_item_name))
         self.location_count -= 1
 
+    def _unlock_in_pool(self, stage: str) -> bool:
+        if stage in TOWN_AREAS:
+            return self._town_in_play(stage)
+        return not self.scope.is_cut(stage)
+
+    def _class_unlocks(self) -> list[str]:
+        """
+        The class unlocks to shuffle, starting class left out.
+
+        Surplus Classes decides what happens to the ones the goal does not
+        need: shuffled anyway, dropped, or handed over at the start. Which ones
+        are surplus is rolled only when that matters, so a seed with the option
+        at its default rolls exactly what it did before the option existed.
+        """
+        unlocks = [
+            f"Unlock {ranger_class} Class"
+            for ranger_class in RANGER_CLASSES
+            if ranger_class != self.options.ranger_class_selected.value
+        ]
+        surplus_classes = self.options.surplus_classes
+        if surplus_classes == surplus_classes.option_in_pool:
+            return unlocks
+
+        # The starting class counts towards every requirement.
+        required = max(getattr(self.options, name).value for name in self.scope.class_options)
+        needed = sorted(self.random.sample(unlocks, min(len(unlocks), max(0, required - 1))))
+        if surplus_classes == surplus_classes.option_start_with:
+            for name in unlocks:
+                if name not in needed:
+                    self.multiworld.push_precollected(self.create_item(name))
+        return needed
+
     def _progressive_shop_items(self) -> list[str]:
         """
-        One track per shop.
+        One track per shop, as long as the deepest row still in the seed.
 
         Only reached with Shop Checks on, which brings 462 locations of its own,
         so the 81 items always fit: they used to be trimmed to a small seed and
-        leave the deepest rows unopenable.
+        leave the deepest rows unopenable. A goal that cuts rows cuts the items
+        that would only have opened them, and a town out of play has no track.
         """
+        present = {location.name for location in self.multiworld.get_locations(self.player)}
+        deepest: dict[str, int] = {}
+        for entry in shop_table.values():
+            if entry["name"] in present:
+                deepest[entry["region"]] = max(deepest.get(entry["region"], 0), entry["req"])
         return [
             name
             for town, name in PROGRESSIVE_SHOPS.items()
-            for _ in range(PROGRESSIVE_SHOP_COUNTS[town])
+            for _ in range(deepest.get(town, 0))
         ]
 
     def _create_traps(self, open_locations: int) -> list[SRItem]:
@@ -434,13 +494,81 @@ class StickRanger(World):
             for _ in range(int(share * open_locations))
         ]
 
+    # ------------------------------------------------------------------- loot
+
+    @classmethod
+    def stage_post_fill(cls, multiworld: MultiWorld) -> None:
+        """
+        Scale Loot with Progress: re-roll filler that Archipelago expects to be
+        found before its owner could reach the area that tier drops in.
+
+        Walks the spheres the way the playthrough does. Each filler item is
+        judged by its owner's gates as they stand when its sphere opens, wherever
+        in the multiworld it was placed, and swapped for one of a tier that fits.
+        Swapping filler for filler never touches logic, so the fill stays valid.
+        """
+        worlds: dict[int, StickRanger] = {
+            world.player: world
+            for world in multiworld.get_game_worlds(cls.game)
+            if world.options.scale_loot_with_progress
+        }
+        if not worlds:
+            return
+
+        state = CollectionState(multiworld)
+        locations = set(multiworld.get_filled_locations())
+        while locations:
+            sphere = {location for location in locations if location.can_reach(state)}
+            if not sphere:
+                break
+            caps = {player: world._loot_cap(state) for player, world in worlds.items()}
+            for location in sphere:
+                item = location.item
+                if (
+                    item.player in caps
+                    and item.name in FILLER_TIER
+                    and FILLER_TIER[item.name] > caps[item.player]
+                ):
+                    world = worlds[item.player]
+                    replacement = world.create_item(
+                        world.random.choice(filler_within(caps[item.player]))
+                    )
+                    replacement.location = location
+                    location.item = replacement
+            for location in sphere:
+                state.collect(location.item, True, location)
+            locations -= sphere
+
+    def _loot_cap(self, state: CollectionState) -> int:
+        """The highest filler tier this player has reached the area of."""
+        gates_open = 0
+        for boss_stage in CHAIN_BOSSES:
+            if not self.gates[boss_stage](state):
+                break
+            gates_open += 1
+        cap = loot_tier_cap(gates_open)
+        if self.options.cap_loot_at_goal:
+            cap = min(cap, self.scope.loot_tier_cap)
+        return cap
+
     # -------------------------------------------------------------- slot data
 
     def fill_slot_data(self) -> dict[str, Any]:
         slot_data = self.options.as_dict(*SLOT_DATA_OPTIONS)
         # The client evaluates this instead of carrying its own copy of the
         # rules, so the two cannot drift apart.
-        slot_data["logic"] = logic_description(self.options)
+        slot_data["logic"] = logic_description(self.options, self.scope.level)
+        # The stages whose clearing wins, as game stage ids. The client used to
+        # keep its own copy of the goal table and had to learn every new goal.
+        slot_data["goal_stages"] = [stage_id(name) for name in self.scope.goals]
+        # What opens for free play once the goal is cleared: every stage and
+        # town the seed never hands out an unlock for. Stages before the goal
+        # that are still to arrive stay shut -- someone may yet send them.
+        slot_data["free_play_stages"] = sorted(
+            stage_id(name)
+            for name in [*regions, *TOWN_AREAS]
+            if name != "Opening Street" and not self._unlock_in_pool(name)
+        )
         # How each shop opens, indexed by the game's town order. The client used
         # to carry these numbers itself; shipping them keeps the stock the
         # player sees and the rules the fill used from drifting apart.
