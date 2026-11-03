@@ -26,8 +26,7 @@
 -   Generate a yaml or download the one in here
 -   Customize the yaml and put it in the /players folder inside Archipelago
 -   Generate a game
--   Connect to and play the game [here](https://kryen112.github.io/), or click your name on the room page
-    to open it with the host, port and slot name already filled in
+-   Play the game in the Stick Ranger client (being rebuilt, not available yet)
 
 ## AP Integration
 
@@ -147,6 +146,5 @@ Please contact inside the Archipelago Discord, inside the Stick Ranger post insi
 
 -   Please support ha55ii, the original creator of Stick Ranger, by playing his games on [dan-ball](http://dan-ball.jp), including the original Stick Ranger and other web games.
 -   Thanks to Dire Storm from the Dan-Ball Discord for making a Vanilla Translation Mod.
--   Thanks to sunsetquesar for teaching me how to run a github.io page.
 
 ---

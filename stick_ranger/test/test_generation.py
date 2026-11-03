@@ -4,8 +4,6 @@ and stay beatable."""
 from __future__ import annotations
 
 import json
-import os
-import re
 from collections import Counter
 from pathlib import Path
 
@@ -31,23 +29,6 @@ from ..shop import SHOP_REQS, shop_table
 from . import StickRangerTestBase
 
 shop_by_name = {entry["name"]: entry for entry in shop_table.values()}
-
-
-def site_game_js() -> Path | None:
-    """
-    The web client's game.js, when its repo is checked out beside this one.
-
-    SR_SITE_ROOT overrides the location. The world folder may be reached
-    through a junction from the Archipelago checkout, so resolve it first.
-    """
-    root = os.environ.get("SR_SITE_ROOT")
-    candidates = [Path(root)] if root else []
-    candidates.append(Path(__file__).resolve().parents[2].parent / "Kryen112.github.io")
-    for candidate in candidates:
-        game_js = candidate / "public" / "game.js"
-        if game_js.is_file():
-            return game_js
-    return None
 
 
 class SweepTestBase(StickRangerTestBase):
@@ -489,16 +470,6 @@ class TestShopReqsPin(SweepTestBase):
 
     def test_one_entry_per_stage(self) -> None:
         self.assertEqual(len(SHOP_REQS), 90)
-
-    def test_matches_the_client_when_it_is_checked_out(self) -> None:
-        """The site repo is not part of CI, so this only runs beside a checkout."""
-        game_js = site_game_js()
-        if game_js is None:
-            self.skipTest("no Kryen112.github.io checkout beside this repo")
-        match = re.search(r"var Shop_Reqs = \[([^\]]*)\]", game_js.read_text(encoding="utf-8"))
-        self.assertIsNotNone(match, "Shop_Reqs not found in game.js")
-        client = tuple(int(n) for n in match.group(1).split(","))
-        self.assertEqual(SHOP_REQS, client, "SHOP_REQS drifted from game.js")
 
 
 class TestStockingRuleNeverStrands(SweepTestBase):

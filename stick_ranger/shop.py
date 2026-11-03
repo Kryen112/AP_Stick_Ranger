@@ -1,4 +1,4 @@
-"""Shop locations, generated from Shop_Items in the web client.
+"""Shop locations, one per item the game's shops sell.
 
 Each purchasable item is one check, wherever you buy it. An item sold in more
 than one town is listed against the most accessible town that stocks it, at the
