@@ -372,7 +372,10 @@ class StickRanger(World):
         return default
 
     def get_filler_item_name(self) -> str:
-        return self.random.choice(self.filler_names)
+        # An item link group's world never runs generate_early, so it has no
+        # goal to cap its filler at.
+        names = getattr(self, "filler_names", None) or filler_within(max(FILLER_TIER.values()))
+        return self.random.choice(names)
 
     def create_items(self) -> None:
         self._place_starter_unlock()
