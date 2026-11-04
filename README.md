@@ -26,7 +26,9 @@
 -   Generate a yaml or download the one in here
 -   Customize the yaml and put it in the /players folder inside Archipelago
 -   Generate a game
--   Play the game in the Stick Ranger client (being rebuilt, not available yet)
+-   Install [Tampermonkey](https://www.tampermonkey.net/) and the client, `stick-ranger-archipelago.user.js` from the
+    release, then play on [the official Stick Ranger page](https://dan-ball.jp/en/javagame/ranger/); the
+    [setup guide](stick_ranger/docs/setup_en.md) has the details
 
 ## AP Integration
 
