@@ -61,8 +61,10 @@ ROLLED_OPTIONS: list[str] = [
 # out on purpose: the rolled result ships instead.
 SLOT_DATA_OPTIONS: tuple[str, ...] = (
     "goal",
+    "towns_in_pool",
     "ranger_class_randomizer",
     "ranger_class_selected",
+    "surplus_classes",
     *CLASS_REQ_OPTIONS,
     *(required for _, _, _, required in STAGE_SETTINGS),
     "shuffle_books",
@@ -84,6 +86,8 @@ SLOT_DATA_OPTIONS: tuple[str, ...] = (
     "shop_checks",
     "remove_null_compo",
     "removable_compos",
+    "cap_loot_at_goal",
+    "scale_loot_with_progress",
     "death_link",
 )
 
@@ -124,23 +128,6 @@ RANGER_CLASSES: list[str] = [
     "Angel",
 ]
 
-GOAL_LOCATIONS: dict[str, list[str]] = {
-    "Volcano": ["Volcano: Exit", "Volcano: Book", "Volcano: Yellow Boss Box Eel"],
-    "Mountaintop": [
-        "Mountaintop: Exit",
-        "Mountaintop: Book",
-        "Mountaintop: Red Boss Smiley Eel",
-        "Mountaintop: Blue Boss Fairy Eel",
-        "Mountaintop: Olive Boss Star Eel",
-        "Mountaintop: Green Boss Cap Eel",
-    ],
-    "Hell Castle": [
-        "Hell Castle: Exit",
-        "Hell Castle: Book",
-        "Hell Castle: Hell Castle Boss",
-    ],
-}
-
 GOAL_OPTIONS_MAP: dict[int, list[str]] = {
     0: ["Hell Castle"],
     1: ["Volcano"],
@@ -149,4 +136,8 @@ GOAL_OPTIONS_MAP: dict[int, list[str]] = {
     4: ["Hell Castle", "Mountaintop"],
     5: ["Volcano", "Mountaintop"],
     6: ["Hell Castle", "Volcano", "Mountaintop"],
+    7: ["Castle"],
+    8: ["Submarine Shrine"],
+    9: ["Pyramid"],
+    10: ["Ice Castle"],
 }

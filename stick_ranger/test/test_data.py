@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from BaseClasses import ItemClassification
 
-from ..constants import GOAL_LOCATIONS, GOAL_OPTIONS_MAP, RANGER_CLASSES, STARTER_UNLOCK_CHOICES
+from ..constants import GOAL_OPTIONS_MAP, RANGER_CLASSES, STARTER_UNLOCK_CHOICES
 from ..items import classes, filler, item_list, item_table, stages, traps, unlocks_by_region
 from ..locations import books_table, enemies_table, location_name_to_id, stages_table
 from ..shop import shop_table
@@ -22,8 +22,8 @@ REGION_STAGE_IDS: dict[str, list[int]] = {
     "Grassland": [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19],
     "Sea": [21, 22, 23, 24, 25, 26, 27, 28, 30, 31, 32, 33],
     "Desert": [34, 35, 36, 37, 38, 39, 40, 41, 43, 44, 45, 46],
-    "Ice": [48, 49, 50, 51, 52, 53, 54, 56, 57, 58, 59, 60, 61, 62],
-    "Hell": [64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 76, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87],
+    "Ice": [48, 49, 50, 51, 52, 53, 54, 56, 57, 58, 59, 60, 61, 62, 71],
+    "Hell": [64, 65, 66, 67, 68, 69, 72, 73, 74, 75, 76, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87],
 }
 
 
@@ -81,14 +81,11 @@ class TestData(StickRangerTestBase):
             {ranger_class.item_name for ranger_class in classes},
         )
 
-    def test_goal_locations_exist(self) -> None:
-        for goal, names in GOAL_LOCATIONS.items():
-            self.assertIn(f"{goal}: Exit", names)
-            for name in names:
-                self.assertIn(name, location_name_to_id, f"{goal} names a missing location")
+    def test_every_goal_has_an_exit(self) -> None:
+        """Clearing a goal stage is reaching its Exit, so each needs one."""
         for goals in GOAL_OPTIONS_MAP.values():
             for goal in goals:
-                self.assertIn(goal, GOAL_LOCATIONS)
+                self.assertIn(f"{goal}: Exit", location_name_to_id, f"{goal} has no Exit")
 
     def test_classifications(self) -> None:
         for item in filler:

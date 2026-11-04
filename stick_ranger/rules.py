@@ -4,6 +4,10 @@ Access rules for every stage.
 The shape is one gate per boss stage, each chaining off the one before it:
 
     Castle -> Submarine Shrine -> Pyramid -> Ice Castle -> Hell Castle
+                                         `-> Mountaintop
+
+Mountaintop sits in the Ice region on the map, so it branches off Pyramid and
+asks what Ice Castle asks, bar Ice Castle's own unlock.
 
 A gate opens when you hold that boss stage's own unlock, enough unlocks from the
 region in front of it, and enough ranger classes. Ordinary stages in a region
@@ -44,17 +48,40 @@ REGION_GATES: tuple[tuple[str, str], ...] = (
     ("Hell", "Ice Castle"),
 )
 
-# Boss stage -> (region counted in front of it, the gate it chains off).
-BOSS_GATES: tuple[tuple[str, str, str | None], ...] = (
-    ("Castle", "Grassland", None),
-    ("Submarine Shrine", "Sea", "Castle"),
-    ("Pyramid", "Desert", "Submarine Shrine"),
-    ("Ice Castle", "Ice", "Pyramid"),
-    ("Hell Castle", "Hell", "Ice Castle"),
+# Boss stage -> (region counted in front of it, the gate it chains off, the
+# boss whose "stages/classes required" options it reads). Mountaintop reads Ice
+# Castle's, and comes last so the client's "next gate" reports the main chain.
+BOSS_GATES: tuple[tuple[str, str, str | None, str], ...] = (
+    ("Castle", "Grassland", None, "castle"),
+    ("Submarine Shrine", "Sea", "Castle", "submarine_shrine"),
+    ("Pyramid", "Desert", "Submarine Shrine", "pyramid"),
+    ("Ice Castle", "Ice", "Pyramid", "ice_castle"),
+    ("Hell Castle", "Hell", "Ice Castle", "hell_castle"),
+    ("Mountaintop", "Ice", "Pyramid", "ice_castle"),
 )
 
 # Boss rush stages, reachable once the Hell Castle gate is open.
-BOSS_RUSH_STAGES: tuple[str, ...] = ("Volcano", "Mountaintop")
+BOSS_RUSH_STAGES: tuple[str, ...] = ("Volcano",)
+
+# How deep into the run each boss sits: the number of gates on the way to it,
+# its own included. Mountaintop shares Ice Castle's depth and Volcano Hell
+# Castle's. A goal's depth decides what is past it; see goal.py.
+GATE_LEVEL: dict[str, int] = {}
+for _boss, _, _previous, _ in BOSS_GATES:
+    GATE_LEVEL[_boss] = 1 + (GATE_LEVEL[_previous] if _previous else 0)
+for _boss in BOSS_RUSH_STAGES:
+    GATE_LEVEL[_boss] = GATE_LEVEL["Hell Castle"]
+
+# The depth of an ordinary stage: that of the boss whose gate it sits behind,
+# and 0 for Grassland, which sits behind none.
+REGION_LEVEL: dict[str, int] = {"Grassland": 0}
+for _region, _boss in REGION_GATES:
+    REGION_LEVEL[_region] = GATE_LEVEL[_boss]
+
+# The main chain, in order, without the Mountaintop branch.
+CHAIN_BOSSES: tuple[str, ...] = tuple(
+    boss for boss, *_ in BOSS_GATES if boss != "Mountaintop"
+)
 
 # Bump this when the shape or meaning of logic_description changes -- a new
 # rule type, a field read differently. The client checks it at connect, so a
@@ -159,8 +186,7 @@ def set_region_rules(
     here is exactly what fill_slot_data ships to the client.
     """
     gates: dict[str, Predicate] = {}
-    for boss_stage, region, previous in BOSS_GATES:
-        key = boss_stage.lower().replace(" ", "_")
+    for boss_stage, region, previous, key in BOSS_GATES:
         gates[boss_stage] = boss_gate(
             player,
             boss_stage,
@@ -171,10 +197,10 @@ def set_region_rules(
         )
         set_rule(multiworld.get_entrance(boss_stage, player), gates[boss_stage])
 
-    # Volcano and Mountaintop sit behind the Hell Castle gate but still need
-    # their own unlock. set_rule replaces whatever create_regions installed, so
-    # the unlock has to be repeated here -- without it the fill is free to hide
-    # "Unlock Volcano" inside Volcano.
+    # Volcano sits behind the Hell Castle gate but still needs its own unlock.
+    # set_rule replaces whatever create_regions installed, so the unlock has to
+    # be repeated here -- without it the fill is free to hide "Unlock Volcano"
+    # inside Volcano.
     for boss_stage in BOSS_RUSH_STAGES:
         set_rule(
             multiworld.get_entrance(boss_stage, player),
@@ -217,8 +243,13 @@ def set_shop_rules(
     nothing but Progressive Shop until the shop coughs up a stage.
 
     Gold is never a rule: enemies drop it forever, so any price is reachable.
+
+    Checks the goal cut from the seed have no location to put a rule on.
     """
+    present = {location.name for location in multiworld.get_locations(player)}
     for location_data in shop_table.values():
+        if location_data["name"] not in present:
+            continue
         tier = location_data.get("tier", 0)
         clauses: list[Predicate] = []
         if options.progressive_shop:
@@ -248,7 +279,7 @@ def set_shop_rules(
         )
 
 
-def logic_description(options: SROptions) -> dict[str, object]:
+def logic_description(options: SROptions, goal_level: int) -> dict[str, object]:
     """
     Everything the web client needs to decide what is in logic, as data.
 
@@ -259,11 +290,15 @@ def logic_description(options: SROptions) -> dict[str, object]:
 
     Every stage is a game stage id, because that is what the client keys on: an
     "Unlock <stage>" item's code minus STAGE_ITEM_OFFSET.
+
+    Gates deeper than the goal are left out. Nothing behind them is in the seed,
+    and the client's "what does the next gate need" would otherwise point a
+    Castle-goal player at Submarine Shrine once Castle opened.
     """
     gates = []
-    previous_stage: int | None = None
-    for boss_stage, region, previous in BOSS_GATES:
-        key = boss_stage.lower().replace(" ", "_")
+    for boss_stage, region, previous, key in BOSS_GATES:
+        if GATE_LEVEL[boss_stage] > goal_level:
+            continue
         gates.append({
             "stage": stage_id(boss_stage),
             "region": region,
@@ -271,7 +306,6 @@ def logic_description(options: SROptions) -> dict[str, object]:
             "stages": getattr(options, f"stages_req_for_{key}").value,
             "classes": getattr(options, f"classes_req_for_{key}").value,
         })
-        previous_stage = stage_id(boss_stage)
 
     # Which boss gate each region sits behind. Grassland sits behind nothing --
     # its stages need only their own unlock.
@@ -288,9 +322,11 @@ def logic_description(options: SROptions) -> dict[str, object]:
         },
         "region_gate": region_gate,
         "gates": gates,
-        # Volcano and Mountaintop need the last gate plus their own unlock.
+        # Volcano needs the Hell Castle gate plus its own unlock.
         "boss_rush": [
-            {"stage": stage_id(name), "after": previous_stage} for name in BOSS_RUSH_STAGES
+            {"stage": stage_id(name), "after": stage_id("Hell Castle")}
+            for name in BOSS_RUSH_STAGES
+            if GATE_LEVEL[name] <= goal_level
         ],
         # Playable with no unlock item at all. Which stages are towns is map
         # geometry rather than a rule, so the client owns that list itself.

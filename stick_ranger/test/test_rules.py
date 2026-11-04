@@ -67,23 +67,35 @@ class TestBossChain(StickRangerTestBase):
                         f"{open_stage} should not care about Unlock {missing}",
                     )
 
-    def test_boss_rush_stages_wait_for_hell_castle(self) -> None:
-        for boss_rush in ("Volcano", "Mountaintop"):
-            with self.subTest(stage=boss_rush):
-                whole_chain = [f"Unlock {name}" for name in BOSS_CHAIN]
-                self.assertTrue(
-                    self.can_reach(boss_rush, self.state_with(*whole_chain, f"Unlock {boss_rush}"))
-                )
-                self.assertFalse(
-                    self.can_reach(boss_rush, self.state_with(*whole_chain)),
-                    f"{boss_rush} opened without its own unlock",
-                )
-                self.assertFalse(
-                    self.can_reach(
-                        boss_rush, self.state_with(*whole_chain[:-1], f"Unlock {boss_rush}")
-                    ),
-                    f"{boss_rush} opened without Unlock Hell Castle",
-                )
+    def test_volcano_waits_for_hell_castle(self) -> None:
+        whole_chain = [f"Unlock {name}" for name in BOSS_CHAIN]
+        self.assertTrue(self.can_reach("Volcano", self.state_with(*whole_chain, "Unlock Volcano")))
+        self.assertFalse(
+            self.can_reach("Volcano", self.state_with(*whole_chain)),
+            "Volcano opened without its own unlock",
+        )
+        self.assertFalse(
+            self.can_reach("Volcano", self.state_with(*whole_chain[:-1], "Unlock Volcano")),
+            "Volcano opened without Unlock Hell Castle",
+        )
+
+    def test_mountaintop_branches_off_pyramid(self) -> None:
+        """It sits in the snow, so it waits for Pyramid, not for Hell Castle."""
+        up_to_pyramid = ["Unlock Castle", "Unlock Submarine Shrine", "Unlock Pyramid"]
+        self.assertTrue(
+            self.can_reach("Mountaintop", self.state_with(*up_to_pyramid, "Unlock Mountaintop")),
+            "Mountaintop should not need Ice Castle or Hell Castle",
+        )
+        self.assertFalse(
+            self.can_reach("Mountaintop", self.state_with(*up_to_pyramid)),
+            "Mountaintop opened without its own unlock",
+        )
+        self.assertFalse(
+            self.can_reach(
+                "Mountaintop", self.state_with(*up_to_pyramid[:-1], "Unlock Mountaintop")
+            ),
+            "Mountaintop opened without Unlock Pyramid",
+        )
 
 
 class TestStageThresholds(StickRangerTestBase):
@@ -287,9 +299,11 @@ class TestTrackerPassthrough(StickRangerTestBase):
         try:
             world.generate_early()
             for name in SLOT_DATA_OPTIONS:
-                self.assertEqual(
-                    getattr(world.options, name).value, pretend[name], f"{name} was not restored"
-                )
+                restored = getattr(world.options, name).value
+                # An OptionSet ships as a sorted list and comes back a set.
+                if isinstance(restored, set):
+                    restored = sorted(restored)
+                self.assertEqual(restored, pretend[name], f"{name} was not restored")
         finally:
             del self.multiworld.re_gen_passthrough
 
@@ -330,10 +344,10 @@ class TestLogicDescription(StickRangerTestBase):
 
     def test_gate_chain_matches_the_rules(self) -> None:
         gates = self.logic()["gates"]
-        self.assertEqual([g["stage"] for g in gates], [10, 29, 42, 63, 88])
-        self.assertEqual([g["after"] for g in gates], [None, 10, 29, 42, 63])
+        self.assertEqual([g["stage"] for g in gates], [10, 29, 42, 63, 88, 55])
+        self.assertEqual([g["after"] for g in gates], [None, 10, 29, 42, 63, 42])
         self.assertEqual([g["region"] for g in gates],
-                         ["Grassland", "Sea", "Desert", "Ice", "Hell"])
+                         ["Grassland", "Sea", "Desert", "Ice", "Hell", "Ice"])
 
     def test_thresholds_are_the_resolved_ones(self) -> None:
         """Not the yaml's min/max -- the values the rules actually gate on."""
@@ -346,10 +360,12 @@ class TestLogicDescription(StickRangerTestBase):
             )
 
     def test_boss_rush_hangs_off_the_last_gate(self) -> None:
-        self.assertEqual(
-            sorted(self.logic()["boss_rush"], key=lambda b: b["stage"]),
-            [{"stage": 55, "after": 88}, {"stage": 89, "after": 88}],
-        )
+        self.assertEqual(self.logic()["boss_rush"], [{"stage": 89, "after": 88}])
+
+    def test_mountaintop_asks_what_ice_castle_asks(self) -> None:
+        gates = {g["stage"]: g for g in self.logic()["gates"]}
+        self.assertEqual(gates[55]["stages"], gates[63]["stages"])
+        self.assertEqual(gates[55]["classes"], gates[63]["classes"])
 
     def test_free_stages(self) -> None:
         """Opening Street has no unlock item, so it is always available."""

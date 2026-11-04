@@ -133,7 +133,7 @@ stages: list[StagesData] = [
     StagesData(11068, "Unlock Forest 5", ItemClassification.progression, "Hell"),
     StagesData(11069, "Unlock Forest 6", ItemClassification.progression, "Hell"),
     StagesData(11070, "Unlock Forget Tree", ItemClassification.useful, "Town"),
-    StagesData(11071, "Unlock !!!", ItemClassification.progression, "Hell"),
+    StagesData(11071, "Unlock !!!", ItemClassification.progression, "Ice"),
     StagesData(11072, "Unlock Hell 1", ItemClassification.progression, "Hell"),
     StagesData(11073, "Unlock Hell 2", ItemClassification.progression, "Hell"),
     StagesData(11074, "Unlock Hell 3", ItemClassification.progression, "Hell"),
@@ -801,6 +801,18 @@ item_list: list[ItemData] = [*stages, *filler, *traps, *classes, *progressive_sh
 
 item_table: dict[str, ItemData] = {item.item_name: item for item in item_list}
 items_by_id: dict[int, ItemData] = {item.code: item for item in item_list}
+
+
+def _filler_tier(name: str) -> int:
+    last_word = name.rsplit(" ", 1)[-1]
+    return int(last_word) if last_word.isdigit() else 1
+
+
+# The tier of every filler item, read off the number its name ends in: "Fire
+# Sword 1" is tier 1 and "Sonic Cestus 8" tier 8. The starting weapons carry no
+# number and count as tier 1. Compos use the same scale as weapons, which is
+# looser than the game but close enough to keep loot in step with the run.
+FILLER_TIER: dict[str, int] = {item.item_name: _filler_tier(item.item_name) for item in filler}
 
 # Progression stage unlocks per region. The length of each list is the ceiling of
 # the matching "stages required for <boss>" option, and logic_description() in
